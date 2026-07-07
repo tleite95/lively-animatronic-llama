@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE root [
+  <!ENTITY remoteContent SYSTEM "https://raw.githubusercontent.com/swandle06/AopXml/2.7.0/assets/schema/current.xsd">
+]>
+<root>
+    &remoteContent;
+</root>
