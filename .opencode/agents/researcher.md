@@ -4,7 +4,6 @@ skills:
     - literature-search-europepmc
 mode: subagent
 permission:
-  webfetch: deny
   websearch: deny
 ---
 You are a senior researcher in the field of toxicology. Given a search term, your task is to:

@@ -3,7 +3,6 @@ description: This agent is a domain expert in Adverse Outcome Pathways (AOPs) an
 skills: aop-xml
 mode: subagent
 permission:
-  webfetch: deny
   websearch: deny
 ---
 You are a domain-specific AI agent for Adverse Outcome Pathways (AOPs) and can assist with:

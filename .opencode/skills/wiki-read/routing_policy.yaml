@@ -1,0 +1,173 @@
+schema_version: 1.0
+policy_id: core_retrieval_routing_policy
+status: active
+author: GPT-5.4
+purpose: >
+  Provide a small, stable set of non-negotiable retrieval-routing rules for
+  declarative agents operating over an LLM wiki and a GraphRAG factual store.
+  This policy is intentionally general: it should constrain unsafe or incoherent
+  routing while leaving room for registry-specific and agent-proposed rules.
+
+systems:
+  wiki:
+    role: procedural_contextual_synthetic_memory
+    authoritative_for:
+      - procedures
+      - workflows
+      - review_protocols
+      - project_context
+      - literature_review_notes
+      - interpretive_syntheses
+      - prior_agent_decisions
+      - governance_guidance
+  graphrag:
+    role: factual_entity_relationship_store
+    authoritative_for:
+      - normalized_entities
+      - identifiers
+      - factual_claims
+      - entity_relationships
+      - measurements
+      - assay_results
+      - literature_extracted_atomic_claims
+      - provenance_linked_evidence
+
+core_principles:
+  - id: factual_authority
+    rule: >
+      If the requested answer depends on an atomic factual claim that can be
+      represented as an entity, relationship, attribute, measurement, or
+      provenance-linked assertion, GraphRAG is the default source of truth.
+
+  - id: procedural_authority
+    rule: >
+      If the requested answer depends on how to perform, interpret, review,
+      document, or govern a task, the wiki is the default source of truth.
+
+  - id: synthesis_requires_facts
+    rule: >
+      If the task requires interpretation or synthesis over factual toxicology
+      evidence, retrieve factual claims from GraphRAG before applying wiki-based
+      procedures, standards, templates, or prior syntheses.
+
+  - id: no_unverified_fact_from_wiki
+    rule: >
+      Wiki content may provide context, rationale, or synthesis, but factual
+      claims found only in the wiki must be verified against GraphRAG or staged
+      for factual ingestion before being treated as authoritative.
+
+  - id: preserve_new_knowledge_boundary
+    rule: >
+      New atomic factual claims extracted by an agent should be staged for
+      GraphRAG ingestion; new interpretations, rationales, review notes,
+      methods, or decision records should be written to the wiki.
+
+routing_decision_order:
+  - check_safety_or_governance_escalation
+  - classify_task_intent
+  - identify_required_knowledge_type
+  - select_minimal_authoritative_backend
+  - add_secondary_backend_if_needed
+  - cite_or_log_source_of_truth
+
+route_classes:
+  factual_lookup:
+    default_backend: graphrag
+    use_when:
+      - requesting identifiers, synonyms, classifications, values, measurements, or assay outcomes
+      - asking whether a specific entity relationship or toxicological association is known
+      - resolving chemicals, genes, assays, endpoints, species, datasets, papers, or claims
+    examples:
+      - What is the CAS number for Bisphenol A?
+      - Which assays report ER alpha activity for this compound?
+      - What evidence links compound X to hepatotoxicity?
+
+  procedural_lookup:
+    default_backend: wiki
+    use_when:
+      - requesting a workflow, protocol, review method, template, checklist, or governance rule
+      - asking how an agent should perform or document a task
+      - retrieving prior project decisions or human-authored rationale
+    examples:
+      - How should I run an endocrine disruption review?
+      - What is the evidence grading protocol?
+      - What did we decide in the previous BPA assessment?
+
+  evidence_synthesis:
+    default_backend: both
+    retrieval_order:
+      - graphrag
+      - wiki
+    use_when:
+      - combining multiple factual claims into a conclusion
+      - weighing evidence quality, consistency, relevance, or uncertainty
+      - producing a literature review conclusion, hazard rationale, or hypothesis
+    examples:
+      - Summarize the evidence that BPA affects ER alpha signaling.
+      - Generate a weight-of-evidence conclusion for compound X and endpoint Y.
+      - Identify plausible mechanisms from the available assay and literature evidence.
+
+  workflow_execution:
+    default_backend: both
+    retrieval_order:
+      - wiki
+      - graphrag
+      - tools_if_required
+    use_when:
+      - executing a multi-step computational toxicology task
+      - applying a documented protocol to factual entities or datasets
+      - creating outputs that combine methods, data, and conclusions
+    examples:
+      - Run the hepatotoxicity screening workflow for this compound set.
+      - Profile this dataset and summarize toxicological endpoint coverage.
+      - Execute an in silico assay workflow and document the results.
+
+  open_exploration:
+    default_backend: wiki_then_graphrag_if_entities_or_facts_emerge
+    use_when:
+      - task intent is exploratory, ambiguous, or planning-oriented
+      - user asks for research directions, hypotheses, project design, or system strategy
+    examples:
+      - What should we investigate next?
+      - Design a review plan for developmental toxicity.
+      - Suggest hypotheses connecting these pathways to observed assay hits.
+
+mandatory_escalation:
+  human_review_required_when:
+    - routing affects regulatory, clinical, legal, or safety-critical conclusions
+    - evidence is contradictory and the output would recommend action
+    - the agent proposes changing an active core routing rule
+    - the task requires accepting a new factual claim without sufficient provenance
+    - source authority is ambiguous and the decision materially affects the result
+
+agent_generated_rule_constraints:
+  allowed:
+    - propose narrower domain-specific routing rules
+    - add examples, aliases, counterexamples, and evaluation cases
+    - recommend backend preferences for specific workflows or entity classes
+  not_allowed:
+    - override mandatory_escalation
+    - demote GraphRAG as authority for atomic factual claims
+    - treat wiki-only factual claims as authoritative without verification
+    - change this core policy without human approval
+  precedence: >
+    Agent-generated rules may refine routing within a route class, but may not
+    override core principles or mandatory escalation rules. When conflict exists,
+    this core policy wins and the conflict must be logged for review.
+
+fallback_behavior:
+  if_intent_unclear: ask_clarifying_question_or_use_open_exploration
+  if_entity_resolution_fails: query_wiki_for_context_then_stage_entity_resolution_issue
+  if_graphrag_has_no_fact: report_no_authoritative_fact_found_and_optionally_search_or_stage_review
+  if_wiki_has_no_procedure: use_nearest_governed_template_or_request_human_authoring
+  if_systems_conflict: prefer_graphrag_for_facts_and_wiki_for_interpretation_then_log_conflict
+
+logging_requirements:
+  record:
+    - selected_route_class
+    - selected_backend_or_backends
+    - route_reason
+    - source_of_truth_for_factual_claims
+    - source_of_truth_for_procedural_or_synthetic_guidance
+    - unresolved_conflicts
+    - human_review_flags
