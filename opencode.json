@@ -1,0 +1,23 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "plugins": [{
+        "package": "./.opencode/plugins/skill-hydrate.ts",
+        "options": {
+            "skills": [
+                "wiki-read",
+                "wiki-write",
+                "wiki-ingest",
+                "wiki-verify",
+                "jsonl-to-rag"
+            ],
+            "agents": [
+                "wiki-expert",
+                "rag-ingestor"
+            ],
+            "transformsDir": "./.opencode/plugins/lal.scripts",
+            "transformModule": "hydrate_refs.ts",
+            "exportName": "hydrateRefs"
+        }
+    }],
+    "ROOT": ""
+}

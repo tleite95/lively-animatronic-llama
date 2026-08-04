@@ -1,20 +1,11 @@
 ---
 name: wiki-write
-description: Use this skill whenever you are modifying a markdown file in `./wiki/docs.` Only use this skill once a document has been ingested and its claims have been extracted. Provides instructions on how to store claim-level information in the wiki, how to format new pages, and how to maintain existing pages when editing.
+description: Use this skill whenever you are modifying a markdown file in `@{ROOT}:/wiki/docs`. Only use this skill once a document has been ingested and its claims have been extracted. Provides instructions on how to store claim-level information in the wiki, how to format new pages, and how to maintain existing pages when editing.
 ---
-
-# Dependent Skill Execution Rule
-
-> [!IMPORTANT]
-> Execute this skill only if the seeded wiki already exists and the canonical in-wiki reference files are available at the expected relative paths.
-> Before running this skill, confirm that the shared wiki specification is available at [reference-wiki-spec.md](../../../wiki/docs/00-system/reference-wiki-spec.md), the top-level category guidance is available at [top-level-wiki-categories-reference.md](../../../wiki/docs/00-system/top-level-wiki-categories-reference.md), and the page template examples are available at [wiki-page-template-examples-by-type.md](../../../wiki/docs/00-system/wiki-page-template-examples-by-type.md).
-> Treat these files as pre-existing runtime references installed by initial wiki seeding.
-> Do not run, invoke, recommend, or recreate `wiki-seed` from this skill.
-> If any required reference file is unavailable, stop and report the missing prerequisite.
 
 ## Required reference
 
-Before performing this skill, read and follow [Wiki Specification Reference](../../../wiki/docs/00-system/reference-wiki-spec.md).
+Before performing this skill, read and follow [Wiki Specification Reference](@{REF}:/wiki/spec.md).
 
 Use that reference for:
 - required frontmatter
@@ -30,7 +21,7 @@ If this skill conflicts with the shared reference, follow this skill only where 
 
 You should prefer to place information in an existing page rather than creating a new page. When determining where to place new information, a top-down approach should be taken:
 
-1. Read through the sidebar and determine which categories may be relevant. Order them by relevance. If it is not clear just from the sidebar, see the [Top-Level Category Reference](../../../wiki/docs/00-system/top-level-wiki-categories-reference.md) document for more information.
+1. Read through the sidebar and determine which categories may be relevant. Order them by relevance. If it is not clear just from the sidebar, see the [Top-Level Category Reference](@{REF}:/wiki/top-level-categories.md) document for more information.
 2. For each relevant page type, find pages of that type that may be relevant to this claim **OR** if there is no relevant page, create a new one.
 3. Within each relevant page, find the best section for this information 
 4. Choose the best option from the final list of sections in pages **OR** if there is no good fit, create a new section in the most relevant page.
@@ -47,9 +38,12 @@ Before adding the section, the agent should decide whether the information is li
 
 ## New Page Creation Flow
 
-A new page should be created when the incoming material is about a distinct and durable unit of knowledge that is likely to accumulate more evidence, links, or operational use over time. The agent should first select the page type, then assign a stable title, identifier, and slug, and finally instantiate the minimum required structure for that page type so the page is immediately usable by both humans and agents. The initial version does not need to be exhaustive, but it should be coherent, citable, and clearly scoped.
+A new page should be created when the incoming material is about a distinct and durable unit of knowledge that is likely to accumulate more evidence, links, or operational use over time. When making a new page, do the following in order:
+- [ ] Select the page type
+- [ ] Assign a stable title, identifier, and slug
+- [ ] Instantiate the minimum required structure for that page type so the page is immediately usable. The initial version does not need to be exhaustive, but it should be coherent, citable, and clearly scoped. Make sure you use the relevant template from the [Template Example Document](@{REF}:/wiki/page-templates-examples.md)
 
-Each new page should begin with a concise summary of what the page is about, the key identifiers or aliases needed for retrieval, and the most important relationships to other pages in the wiki. It should then include only the sections necessary to hold the ingested material, along with citations, uncertainty notes, and cross-links to source pages, evidence pages, and indices. When a page is created from a source document, the source-specific framing should remain on the literature page, while durable normalized facts, definitions, and linked evidence should be transferred to the new canonical page so that future synthesis can occur across many documents instead of being trapped inside one source.
+Each new page should begin with a concise summary of what the page is about, the key identifiers or aliases needed for retrieval, and the most important relationships to other pages in the wiki. It should then include non-stup content only the sections necessary to hold the ingested material, along with citations, uncertainty notes, and cross-links to source pages, evidence pages, and indices. When a page is created from a source document, the source-specific framing should remain on the literature page, while facts, definitions, and linked evidence should be transferred to the new canonical page so that future synthesis can occur across many documents instead of being trapped inside one source.
 
 ## Verification
 
@@ -68,3 +62,41 @@ If the incoming material comes from a paper, review, or report, ensure that a co
 ## Discoverability Maintenance
 
 When creating a new canonical page, update the most relevant index page or leave a clearly marked TODO note on that index so the new page remains discoverable through normal wiki navigation rather than only by search.
+
+## Human Readability
+
+A substantive page should satisfy two checks:
+1. A human reader can identify the page purpose, scope, key claims, verification state, and open issues from headings and prose before inspecting structured records.
+2. Structured claim, citation, or audit blocks are paired with concise readable statements, tables, or summaries that explain their significance.
+
+## Operation Rules Summaries / Tasklists
+
+### Page Creation Rules
+
+Before creating a page:
+
+1. Search for existing canonical pages, aliases, near-duplicates, source records, evidence records, and indices.
+2. Determine the page's primary object of knowledge.
+3. Assign exactly one top-level category.
+4. Assign one approved `page_type`.
+5. Select the smallest compliant template from `page-templates-examples.md`.
+6. Create valid YAML frontmatter with required fields.
+7. Use lowercase kebab-case for filenames, IDs, and slugs where appropriate.
+8. Include aliases for common synonyms, acronyms, chemical names, regulatory labels, or spelling variants.
+9. Add atomic claims only when supported by citations.
+10. Add related pages using relative links.
+11. Set page-level `verification_status` to `unverified` unless a complete verification pass has been completed.
+
+Prefer updating a canonical page over creating a duplicate. If a term is lightweight, create or update a glossary page or index pointer instead of a full concept page.
+
+### Page Update Rules
+
+When updating a page:
+
+- Preserve stable IDs, slugs, and existing valid links unless a repair requires migration.
+- Preserve supported claims when repairing unsupported or contradicted content.
+- Do not remove uncertain content silently; narrow it, mark it, move it, or create review notes.
+- Update `last_reviewed` only after substantive review.
+- Update verification fields only when verification actually occurred.
+- Add audit records for major repairs, contradiction handling, source repairs, rewrites, and backup restores.
+- If a broad rewrite is needed, minimize disruption to stable internal links.

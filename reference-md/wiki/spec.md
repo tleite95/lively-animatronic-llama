@@ -108,7 +108,14 @@ verification_status: verified
 
 ### Recommended fields
 
-Use these when applicable: `tags`, `aliases`, `sidebar_position`, `canonical_entity_id`, `source_priority`, `review_owner`, `backup_of`, `backups`, `kg_entity_id`.
+Use these when applicable: 
+- `tags` for search-optimization. Do not include redundant tags such as the name of an entity, its type, etc.
+- `aliases` other names that may be included in searches for this page's contents.
+- `canonical_entity_id` for non-canonical sources of information, so that the canonical location can be easily found.
+- `source_priority` how numerous or otherwise reputable the sources for this page are.
+- `backup_of` for backups made during verification.
+- `backups` back-link relative to `backup_of`, also only used during verification.
+- `kg_entity_id` entity ID in the knowledge graph (ground-truth source for factual entity data)
 
 ## Standard Page Structure
 
@@ -134,7 +141,7 @@ Use a predictable section order. Headings may be adapted by page type, but the f
 - `evidence` pages should be structured and claim-centric.
 - `workflow` and `governance` pages may contain imperative instructions, but should still cite any scientific assertions.
 
-If it is not absolutely clear how to structure a page, refer to the [Page Template Examples](../../../wiki/docs/00-system/page-templates-examples.md) document
+If it is not absolutely clear how to structure a page, refer to the [Page Template Examples](@{REF}:/wiki/page-templates-examples.md) document. If that document contradicts the guidance listed above, prefer the templates document.
 
 ## Claim Format
 
@@ -184,7 +191,7 @@ depends_on: []
 
 ### Claim rules
 
-A claim must be specific enough to verify. Scope qualifiers matter. Claims about mechanisms, hazards, or assay performance **must not omit** relevant context if the source is qualified. Definitions should be domain-specific when the general definition is already common knowledge.
+A claim must be specific enough to verify. Scope qualifiers matter -- they must always be preserved. Claims about mechanisms, hazards, or assay performance **must not omit** relevant context if the source is qualified. Definitions should be domain-specific when the general definition is already common knowledge.
 
 ## Citation Format
 
@@ -208,6 +215,8 @@ Every substantive claim must cite at least one source, dataset, or evidence page
 | `pages_or_sections` | Relevant page range, figure, table, or section |
 | `notes` | Short provenance or interpretation note |
 
+If data for a given field is not available in the ingestion stream, mark it as `Unavailable`. Never guess at the value, rely on an external document for it, or attempt to search for it by any means.
+
 ### Citation example
 
 ```yaml
@@ -218,7 +227,7 @@ authors:
   - A. Author
   - B. Author
 year: 2024
-container: Journal of Example Toxicology
+container: Unavailable
 doi: 10.1000/example
 url: https://example.org/review
 access_status: open_access
@@ -284,35 +293,36 @@ Most fields making up the verification summary are optional but this field is re
 
 ## Links, Filenames, and Naming Rules
 
-Use natural-language page titles in the Markdown front matter and filesystem-safe slugs for filenames.
+Use natural-language page titles in the Markdown frontmatter and filesystem-safe slugs for filenames. 
+
+In links, use relative paths to refer to pages to increase portability across deployments. You may include section anchors when linking only if that section is the only relevant subset of information on the page.
 
 | Wiki Concept Name | Docusaurus Filename | Example Internal Link |
 |---|---|---|
 | `Bisphenol A` | `bisphenol-a.md` | `[Bisphenol A](../03-chemicals/bisphenol-a.md)` |
-| `Aryl Hydrocarbon Receptor` | `aryl-hydrocarbon-receptor.md` | `[Aryl Hydrocarbon Receptor](../04-biology/targets/aryl-hydrocarbon-receptor.md)` |
+| `Aryl Hydrocarbon Receptor (Exogenous Activators)` | `aryl-hydrocarbon-receptor.md` | `[Aryl Hydrocarbon Receptor](../04-biology/targets/aryl-hydrocarbon-receptor.md#exogenous-activators)` |
 | `Dose-Response Relationship` | `dose-response-relationship.md` | `[Dose-Response Relationship](../02-concepts/dose-response-relationship.md)` |
 | `Tox21 Dataset` | `tox21.md` | `[Tox21](../07-datasets/tox21.md)` |
-| `Literature Review Workflow` | `literature-review-workflow.md` | `[Literature Review Workflow](../11-workflows/literature-review-workflow.md)` |
+| `Literature Review Workflow` | `literature-review-workflow.md` | `[Literature Review Workflow](../../11-workflows/literature-review-workflow.md)` |
 
 
 Rules:
 
 - Use lowercase `kebab-case` for folders and filenames.
 - Avoid spaces, brackets, punctuation-heavy names, and special characters in filenames.
-- Preserve precise scientific capitalization in `title` front matter, not in filenames.
+- Preserve precise scientific capitalization in `title` frontmatter, not in filenames.
 - Use stable slugs; do not rename files casually after agents or users begin linking to them.
-- Prefer relative links between pages so the wiki remains portable across deployments.
-- Keep machine-readable identifiers in front matter, even when the filename is human-readable.
+- Keep machine-readable identifiers in frontmatter, even when the filename is human-readable.
 
 ### Linking rules
 
-Use relative internal Markdown links where possible.
+Use relative internal Markdown links where possible. Note that these links are relative to *the page they appear in*. Make sure you use the correct number of relative path segments.
 
 ```md
 [Bisphenol A](../03-chemicals/bisphenol-a.md)
 ```
 
-Link to canonical pages rather than repeating content. If a page summarizes a claim maintained elsewhere, cite or link to the evidence-bearing page.
+Prefer linking to canonical pages rather than repeating content. If a page summarizes a claim maintained elsewhere, cite or link to the evidence-bearing page.
 
 ### Naming rules
 
@@ -335,7 +345,7 @@ Major repairs must be auditable.
 | `timestamp` | When the change occurred |
 | `review_needed` | Whether human review is required |
 
-When a contradiction requires large-scale repair, create a backup page or version link, preserve as many supported claims as possible, and mark the updated page `needs_review` or `needs_human_review` as appropriate.
+When a contradiction requires large-scale repair, create a backup page or version link, preserve as many supported claims as possible, and mark the updated page `needs_review` or `needs_human_review` as appropriate. Ensure backups are properly labeled in their frontmatter and that the new user-facing page has backups linked in the frontmatter as well.
 
 ## Minimum Page Checklist
 

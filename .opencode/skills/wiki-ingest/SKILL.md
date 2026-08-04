@@ -1,20 +1,19 @@
 ---
 name: wiki-ingest
-description: Use this skill whenever you are reading a new source to be ingested into the wiki. 
+description: Use this skill whenever you are analyzing a new source to be ingested into the wiki. 
 ---
 
-# Dependent Skill Execution Rule
+## Usage
+Use this skill when you have a JSONL stream of RAG chunks and need a citation-preserving, vetted report on what edits to make to the wiki
 
-> [!IMPORTANT]
-> Execute this skill only if the seeded wiki already exists and the canonical in-wiki reference files are available at the expected relative paths.
-> Before running this skill, confirm that the shared wiki specification is available at [reference-wiki-spec.md](../../../wiki/docs/00-system/reference-wiki-spec.md), the top-level category guidance is available at [top-level-wiki-categories-reference.md](../../../wiki/docs/00-system/top-level-wiki-categories-reference.md), and the page template examples are available at [wiki-page-template-examples-by-type.md](../../../wiki/docs/00-system/wiki-page-template-examples-by-type.md).
-> Treat these files as pre-existing runtime references installed by initial wiki seeding.
-> Do not run, invoke, recommend, or recreate `wiki-seed` from this skill.
-> If any required reference file is unavailable, stop and report the missing prerequisite.
+Do not use this skill:
+- When you are reading the wiki
+- To process plain text, meant to be inserted verbatim into the wiki
+- When doing any kinf of wiki editing / creation of wiki pages
 
 ## Ingestion Strategies
 
-Apply one of four abstract strategies depending on source structure, choosing the strategy by document type rather than by topic. If a specific ingestion strategy is directed by the user, use that regardless of its document type or structure.
+Apply one of four abstract strategies. The strategies are speific to a specific by document type rather than a topic. The JSONL chunks will contain a `strategy` field containing a single-letter identifier corresponding to one of the following strategies. In this section, read only the relevant strategy and follow the directions in that section.
 
 **Strategy A - Structural Decomposition** applies to textbooks. Because the source already has an author-imposed hierarchy of chapters and sections, ingestion should preserve that hierarchy as the wiki's own page structure rather than re-chunking arbitrarily, so that each wiki page corresponds to a coherent conceptual unit the textbook authors intended to stand alone. Definitions embedded in the text should be lifted into a lightweight glossary layer that other pages can reference, and figures or worked examples that illustrate a mechanism should be described narratively rather than reproduced, since the wiki's role is conceptual synthesis rather than verbatim reproduction.
 
@@ -25,14 +24,21 @@ Apply one of four abstract strategies depending on source structure, choosing th
 **Strategy D - Definitional/Procedural Extraction** applies to the guidance documents (AOP handbook, ECETOC read-across report, EPA benchmark dose guidance). These documents encode formal, regulator-sanctioned definitions and decision procedures that the agent will need to cite precisely and consistently, so ingestion should prioritize extracting the canonical definition of each term exactly as the issuing body states it, tagging it with its source and version, and building a short procedural summary of the associated workflow (for example, the sequence of steps a regulator expects in a read-across justification). Because these documents are periodically revised, each extracted definition should carry a document version and date so that later ingestion of an updated guidance document triggers a review rather than a silent overwrite.
 
 ## Summarization and Key-point Extraction
-Summarization and key-point extraction should be guided by the redundancy-minimization principle stated above: before writing a wiki page, the agent should first draft what a well-informed but non-specialist reader would already know about the topic, and then restrict the actual page content to what remains — field-specific terminology, quantitative conventions, the current methodological state of the art, and known limitations — so that pages stay dense with genuinely new information rather than restating general scientific background.
+Summarization and key-point extraction should be guided by the redundancy-minimization principle: before writing a wiki page, the agent should first draft what a well-informed but non-specialist reader would already know about the topic, and then restrict the actual page content to what remains — field-specific terminology, quantitative conventions, the current methodological state of the art, and known limitations — so that pages stay dense with genuinely new information rather than restating general scientific background.
 
-For the full specification on how to format an extracted claim, see the [relevant section](../../../wiki/docs/00-system/reference-wiki-spec.md#claim-format) of the wiki spec.
+## Claim extraction
+
+A claim is a specific, self-contained statement extracted from a source document that asserts a finding, conclusion, relationship, mechanism, comparison, limitation, or interpretation that could be evaluated against evidence in the paper or external literature. In claim extraction, a good claim should preserve the source's intended meaning, avoid unnecessary background detail, and be precise enough to verify, support, contradict, or cite.
+- **Well-formatted claim statement**: The study found that participants receiving the intervention had significantly lower systolic blood pressure after 12 weeks than participants in the control group.
+- **Poorly-formatted claim statement**: The intervention was good and seemed to help people a lot.
+- **Not a claim statement**: Table 2 reports baseline demographic characteristics of the study participants.
+
+For the full specification on how to format an extracted claim, see the [relevant section](@{REF}:/wiki/spec.md#claim-format) of the wiki spec.
 
 ## Citation
 Citation should be handled uniformly regardless of source type: every extracted claim on a wiki page should carry an inline reference back to its originating source and, where practical, the specific section or figure, so that a downstream agent using the wiki can trace any assertion back to a citable original and so that later contradiction-checking has something concrete to compare.
 
-For the full specification on citation formats, see the [relevant section](../../../wiki/docs/00-system/reference-wiki-spec.md#citation-format) of the wiki spec.
+For the full specification on citation formats, see the [relevant section](@{REF}:/wiki/spec.md#citation-format) of the wiki spec.
 
 ## Synthesis
 Finally, synthesis across sources and pages should be treated as a distinct, higher-order ingestion pass performed after individual-source ingestion rather than during it: once several sources touching a shared concept have been ingested (for example, AOP framework papers, PBPK reviews, and IVIVE reviews all bearing on next-generation risk assessment), the agent should generate a small number of synthesis pages that explicitly integrate these separately-ingested pages into a higher-level narrative of how the sub-fields relate, explicitly citing the constituent pages rather than the original sources directly, so that the wiki accumulates original synthesis — Karpathy's and de Assis's original intent for this component — rather than remaining a collection of independent per-source summaries.
@@ -42,5 +48,15 @@ A completed ingestion pass should produce a structured handoff for downstream wr
 
 For review papers and primary papers, the agent should still create at least a lightweight literature or source record containing the citation, source scope, and extraction notes, even when durable knowledge is routed to concept, assay, endpoint, or dataset pages. This preserves provenance without turning the wiki into a paper-by-paper summary archive.
 
-## Pre-write Cross-check
-Before handing material to `wiki-write`, compare extracted claims against the most relevant canonical pages and record likely overlaps or conflicts. This is only a triage step: the ingestion pass should identify possible contradictions and scope mismatches, but final contradiction resolution belongs to verification or synthesis rather than ingestion.
+## Ingestion Summary / Tasklist
+
+When ingesting a source:
+
+1. Identify source type, title, authors or organization, year, venue, DOI or URL, access status, retrieved date, and allowed-source status.
+2. Create or update a `literature` page when the source needs provenance preservation.
+3. Extract claims only if they are relevant to environmental chemistry, computational toxicology, evidence standards, datasets, assays, models, workflows, or endpoints.
+4. Preserve source language enough to avoid scope drift, but do not copy large source passages.
+5. Map extracted claims to target canonical pages and evidence records.
+6. Create new canonical pages only when no suitable page exists.
+7. Add open questions for ambiguous, incomplete, contradictory, or expert-dependent claims.
+8. Return an ingestion summary with source metadata, target pages, extracted claims, skipped material, and review needs.

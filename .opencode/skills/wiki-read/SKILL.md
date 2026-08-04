@@ -3,15 +3,6 @@ name: wiki-read
 description: Provides instructions on how to retrieve conceptual and procedural toxicology-related information from the wiki.
 ---
 
-# Dependent Skill Execution Rule
-
-> [!IMPORTANT]
-> Execute this skill only if the seeded wiki already exists and the canonical in-wiki reference files are available at the expected relative paths.
-> Before running this skill, confirm that the shared wiki specification is available at [reference-wiki-spec.md](../../../wiki/docs/00-system/reference-wiki-spec.md), the top-level category guidance is available at [top-level-wiki-categories-reference.md](../../../wiki/docs/00-system/top-level-wiki-categories-reference.md), and the page template examples are available at [wiki-page-template-examples-by-type.md](../../../wiki/docs/00-system/wiki-page-template-examples-by-type.md).
-> Treat these files as pre-existing runtime references installed by initial wiki seeding.
-> Do not run, invoke, recommend, or recreate `wiki-seed` from this skill.
-> If any required reference file is unavailable, stop and report the missing prerequisite.
-
 ## Routing Instructions
 
 Use this skill to look up:
@@ -28,7 +19,7 @@ Do **not** use this skill when you need:
 - assay results
 - atomic claims extracted from literature
 
-If you are still unclear on whether you should look for information in the wiki, read the full routing policy: `./routing_policy.yaml`
+If you are still unclear on whether you should look for information in the wiki, read the [full routing policy](@routing_policy.yaml)
 
 ## Finding information in the wiki
 

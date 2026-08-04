@@ -24,8 +24,8 @@ In GHS, hazard statements describe the nature and severity of the risks posed by
 Then depending on what you matched:
 * If you found neither, report that the code you were asked about is not part of the GHS system
 * If you found a combined code, follow both of the following steps
-* If You found H-Codes, find all corresponding entries in `./data/hazard-statements.json` and search for relevant information. Then note all referenced P-Codes and read those.
-* If You found P-Codes, find all corresponding entries in `./data/precautionary-statements.json` and search for relevant information.
+* If You found H-Codes, find all corresponding entries in `@{DAT}:/ghs/hazard-statements.json` and search for relevant information. Then note all referenced P-Codes and read those.
+* If You found P-Codes, find all corresponding entries in `@{DAT}:/ghs/precautionary-statements.json` and search for relevant information.
 
 ### JSON structure overview
 

@@ -1,20 +1,11 @@
 ---
 name: wiki-verify
-description: Use this skill whenever you are verifying a file in `./wiki/docs.` Provides instructions on how to verify the authenticity of the information stored in the file, check for contradictions across files, and find sources for evidence to support weak claims.
+description: Use this skill whenever you are verifying a file in `@{ROOT}:/wiki/docs`. Provides instructions on how to verify the authenticity of the information stored in the file, check for contradictions across files, and find sources for evidence to support weak claims.
 ---
-
-# Dependent Skill Execution Rule
-
-> [!IMPORTANT]
-> Execute this skill only if the seeded wiki already exists and the canonical in-wiki reference files are available at the expected relative paths.
-> Before running this skill, confirm that the shared wiki specification is available at [reference-wiki-spec.md](../../../wiki/docs/00-system/reference-wiki-spec.md), the top-level category guidance is available at [top-level-wiki-categories-reference.md](../../../wiki/docs/00-system/top-level-wiki-categories-reference.md), and the page template examples are available at [wiki-page-template-examples-by-type.md](../../../wiki/docs/00-system/wiki-page-template-examples-by-type.md).
-> Treat these files as pre-existing runtime references installed by initial wiki seeding.
-> Do not run, invoke, recommend, or recreate `wiki-seed` from this skill.
-> If any required reference file is unavailable, stop and report the missing prerequisite.
 
 ## Required reference
 
-Before performing this skill, read and follow [Wiki Specification Reference](../../../wiki/docs/00-system/reference-wiki-spec.md).
+Before performing this skill, read and follow [Wiki Specification Reference](@{REF}:/wiki/spec.md).
 
 Use that reference for:
 - required frontmatter
@@ -28,7 +19,7 @@ If this skill conflicts with the shared reference, follow this skill only where 
 
 ## Initial page setup
 
-All seeded wiki pages should initially be treated as **draft, in need of review** until a verification flow confirms that their claims are supported by accessible, durable, and explicitly permitted sources. The verification flow should function as a linting and patching pipeline: identify claims, resolve cited sources, check source accessibility, compare page statements against the cited evidence, and either approve, flag, or patch the page.
+All seeded wiki pages should initially be treated as a working draft (in need of review) until a verification flow confirms that their claims are supported by accessible, durable, and explicitly permitted sources. The verification flow should function as a linting and patching pipeline: identify claims, resolve cited sources, check source accessibility, compare page statements against the cited evidence, and either approve, flag, or patch the page.
 
 ## Verification checklist
 
@@ -137,9 +128,24 @@ Each verified claim should leave a compact machine-readable record containing at
 
 Each verification run must produce:
 
-- Updated page front matter.
+- Updated page frontmatter.
 - A claim verification table.
 - A source accessibility table.
 - A patch summary.
 - A machine-readable audit log entry.
 - A human-review queue for unresolved or high-impact claims.
+
+## Verification Summary / Tasklist
+
+For each claim under verification:
+
+1. Identify the cited source or evidence record.
+2. Confirm the source is allowed and accessible.
+3. Compare statement, subject, predicate, object, and qualifiers against the source.
+4. Assign one claim-level status: `supported`, `unsupported`, `overstated`, `contradicted`, `source_inaccessible`, or `needs_human_review`.
+5. Record confidence and notes when useful.
+6. If the claim is too broad, narrow it or mark it `overstated`.
+7. If sources conflict, classify contradiction type when applicable.
+8. Update page-level verification summary only after reviewing all relevant claims in scope.
+
+Run contradiction checks only after claim-level verification. Do not treat absence of evidence as contradiction unless a source directly conflicts with the claim.

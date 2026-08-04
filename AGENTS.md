@@ -15,3 +15,12 @@ In silico toxicology techniques support AOPs by using computational methods to p
 - Molecular docking / simulation to identify possible molecular initiating events
 - Pathway and network analysis to map gene/protein interactions
 - Machine learning to predict key events or adverse outcomes from large datasets
+
+# Technical terms
+
+Toxicology and related fields sometimes have field-specific, technical definitions for otherwise common words. Read the reference file: [Disambiguated Technical Terms](@{REF}:/glossary/disambiguated_technical_terms.md). Note that sometimes, these words really are used in their common sense. Use surrounding context to decide which definition is being used at any given time.
+
+In addition to these, you may come across a new term that does not have a common use. In those cases, first check the other glossary files in order to see if it is defined there:
+
+- [Domain-Specific Terms](@{REF}:/glossary/domain_specific_terms.md)
+- [Tech Glossary](@{REF}:/glossary/tech_glossary.md)

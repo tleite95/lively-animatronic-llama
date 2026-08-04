@@ -10,6 +10,23 @@ Do not create duplicate canonical pages across categories. If a page legitimatel
 
 Use top-level category and `page_type` together. Let the top-level category determine organizational location and navigation context. Let `page_type` determine semantic role, expected content, and validation rules.
 
+## Cross-Category Decision Rules
+
+If a page could plausibly fit multiple categories, choose the category that owns the page's primary maintenance burden. If the page will mainly accumulate identifiers and evidence about a substance, place it under chemicals even if it contains biology and endpoints. If the page will mainly accumulate definitions and distinctions, place it under concepts even if it cites many assay or model examples.
+
+Prefer canonical domain categories over projects, indices, and workflows for durable scientific content. Prefer literature for source records, evidence for structured claim artifacts, and governance for rules. Use links aggressively rather than duplicating content across categories.
+
+## Minimal Placement Test
+
+Before finalizing placement, answer four questions.
+
+1. What is the page's primary object of knowledge?
+2. What kind of future updates will it likely accumulate?
+3. Which page family should downstream agents query first for this information?
+4. Which category minimizes duplication with existing canonical pages?
+
+If the answers do not align, revise placement before writing.
+
 ## Category Routing Reference
 
 ### `00-system`
@@ -107,20 +124,3 @@ Use this category to encode what the system is allowed to do and how quality is 
 Place pages here when the page is meant for lightweight term lookup rather than full concept treatment. Use this category for short definitional stubs, alias pages, terminology indices, and minimal lookup-oriented entries that support retrieval.
 
 Use the glossary to reduce friction, not to replace richer concept pages. If a term accumulates substantial domain-specific content, promote it to a canonical concept page and leave the glossary entry as a pointer.
-
-## Cross-Category Decision Rules
-
-If a page could plausibly fit multiple categories, choose the category that owns the page's primary maintenance burden. If the page will mainly accumulate identifiers and evidence about a substance, place it under chemicals even if it contains biology and endpoints. If the page will mainly accumulate definitions and distinctions, place it under concepts even if it cites many assay or model examples.
-
-Prefer canonical domain categories over projects, indices, and workflows for durable scientific content. Prefer literature for source records, evidence for structured claim artifacts, and governance for rules. Use links aggressively rather than duplicating content across categories.
-
-## Minimal Placement Test
-
-Before finalizing placement, answer four questions.
-
-1. What is the page's primary object of knowledge?
-2. What kind of future updates will it likely accumulate?
-3. Which page family should downstream agents query first for this information?
-4. Which category minimizes duplication with existing canonical pages?
-
-If the answers do not align, revise placement before writing.
