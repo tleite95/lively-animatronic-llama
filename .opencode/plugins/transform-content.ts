@@ -132,12 +132,14 @@ const resolveSkillPath = (location: string, worktree: string): string =>
     isAbsolute(location) ? location : resolve(worktree, location)
 
 export default define({
-    id: "acme.content-transform",
+    id: "lal.content-transform",
     setup: async (ctx: any) => {
         const projectRoot = process.cwd()
         const options = parseOptions(ctx.options)
         const allowedDir = resolve(projectRoot, options.transformsDir)
         const rules = await loadRules(options.transforms, allowedDir)
+
+        console.log(`content-transform: setting up with ROOT=${projectRoot}`)
 
         await ctx.skill.transform(async (draft: any) => {
             for (const source of draft.list()) {
