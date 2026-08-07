@@ -35,8 +35,8 @@ class RAGIngestionState(TypedDict, total=False):
     run_id: str
     try_number: int
     creation_time: str
+    config: RagIngestionConfig
     manifest: RagIngestionRunManifest
-    config_data: RagIngestionConfig
 
 
     wiki_doc_queue: list[str]
@@ -65,8 +65,28 @@ def make_initial_state(config_file: str) -> RAGIngestionState:
         "creation_time": now,
         "config": config_data,
         "manifest": {
-            "pdf": {},
-            "raw_jsonl": {},
-            "clean_jsonl": [],
+            "run_dir": "",
+            "md_dir": "",
+            "txt_dir": "",
+            "full_text": "",
+            "final_jsonl": "",
+            "processed_jsonl": "",
+            "raw_jsonl": "",
+            "quarantined_jsonl": "",
+            "log_folder": "",
+            "report_folder": "",
+            "qa_report": "",
+            "major_change_report": "",
+            "preparation_report": "",
+        },
+        "wiki_doc_queue": [],
+        "current_doc": [],
+        "lightrag_doc_queue": [],
+        "current_lightrag_doc": [],
+        "wiki_ingest_output": "",
+        "wiki_write_output": "",
+        "summaries": {
+            "wiki": [],
+            "lightrag": [],
         }
     }

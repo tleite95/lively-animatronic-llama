@@ -36,7 +36,7 @@ from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
-from util import utc_now
+from scripts.util import utc_now
 
 TOKEN_RE = re.compile(r"\b\w+[\w.-]*\b")
 SENTENCE_RE = re.compile(r"[^.!?]+[.!?]")
@@ -530,7 +530,7 @@ def run_pipeline(args: argparse.Namespace):
         md_folder,
         txt_folder,
         Path(args.output_jsonl).parent,
-        Path(args.quarantine_jsonl).parent,
+        Path(args.quarantined_jsonl).parent,
         Path(args.qa_report).parent,
         Path(args.major_change_report).parent,
         *( [log_folder] if log_folder else [] ),
@@ -565,7 +565,7 @@ def run_pipeline(args: argparse.Namespace):
     if args.limit:
         pdf_paths = pdf_paths[: args.limit]
 
-    with open(args.output_jsonl, "w", encoding="utf-8") as kept_out, open(args.quarantine_jsonl, "w", encoding="utf-8") as quarantine_out:
+    with open(args.output_jsonl, "w", encoding="utf-8") as kept_out, open(args.quarantined_jsonl, "w", encoding="utf-8") as quarantine_out:
         for pdf_path in pdf_paths:
             original_n_chunks = 0
             kept_rows: list[dict[str, Any]] = []
@@ -637,7 +637,7 @@ def run_pipeline(args: argparse.Namespace):
     qa = finalize_qa(qa, major_count)
     Path(args.qa_report).write_text(json.dumps(qa, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Extraction complete. Kept chunks: {args.output_jsonl}")
-    print(f"Quarantine stream: {args.quarantine_jsonl}")
+    print(f"Quarantine stream: {args.quarantined_jsonl}")
     print(f"QA report: {args.qa_report}")
     print(f"Major change report: {args.major_change_report} ({major_count} entries)")
     if log_folder:
@@ -647,7 +647,7 @@ def run_pipeline(args: argparse.Namespace):
             "parameters": vars(args),
             "summary": {
                 "kept_jsonl": args.output_jsonl,
-                "quarantine_jsonl": args.quarantine_jsonl,
+                "quarantined_jsonl": args.quarantined_jsonl,
                 "qa_report": args.qa_report,
                 "major_change_report": args.major_change_report,
                 "major_change_entries": major_count,

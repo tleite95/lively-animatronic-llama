@@ -4,8 +4,8 @@ import json
 
 from state import RAGIngestionState
 
-from scripts.util import utc_now, run_prompt, run_ingest
-from scripts.ingest import run
+from scripts.util import utc_now
+from scripts.run import run_prompt, run_ingest
 
 
 def init(state: RAGIngestionState):
@@ -19,48 +19,48 @@ def init(state: RAGIngestionState):
 
     run_dir = artifact_dir / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
-    state["manifest"]["run_dir"] = run_dir.resolve()
+    state["manifest"]["run_dir"] = str(run_dir.resolve())
 
     jsonl_processed_path = (run_dir / "ingestion_stream.jsonl")
-    state["manifest"]["processed_jsonl"] = jsonl_processed_path.resolve()
+    state["manifest"]["processed_jsonl"] = str(jsonl_processed_path.resolve())
     
     jsonl_final_path = (run_dir / "RAG_stream.jsonl")
-    state["manifest"]["final_jsonl"] = jsonl_final_path.resolve()
+    state["manifest"]["final_jsonl"] = str(jsonl_final_path.resolve())
 
     jsonl_quarantine_path = (run_dir / "quarantine_stream.jsonl")
-    state["manifest"]["quarantined_jsonl"] = jsonl_quarantine_path.resolve()
+    state["manifest"]["quarantined_jsonl"] = str(jsonl_quarantine_path.resolve())
 
     jsonl_raw_path = (run_dir / "raw_stream.jsonl")
-    state["manifest"]["raw_jsonl"] = jsonl_raw_path.resolve()
+    state["manifest"]["raw_jsonl"] = str(jsonl_raw_path.resolve())
 
     md_path = (run_dir / "md")
-    md_path.mkdir(parents=True, exists_ok=True)
-    state["manifest"]["md_dir"] = md_path.resolve()
+    md_path.mkdir(parents=True, exist_ok=True)
+    state["manifest"]["md_dir"] = str(md_path.resolve())
 
     txt_path = (run_dir / "txt")
-    txt_path.mkdir(parents=True, exists_ok=True)
-    state["manifest"]["txt_dir"] = txt_path.resolve()
+    txt_path.mkdir(parents=True, exist_ok=True)
+    state["manifest"]["txt_dir"] = str(txt_path.resolve())
 
     log_path = (run_dir / "logs")
-    log_path.mkdir(parents=True, exists_ok=True)
-    state["manifest"]["log_folder"] = log_path.resolve()
+    log_path.mkdir(parents=True, exist_ok=True)
+    state["manifest"]["log_folder"] = str(log_path.resolve())
 
     report_path = (run_dir / "reports")
-    report_path.mkdir(parents=True, exists_ok=True)
-    state["manifest"]["report_folder"] = report_path.resolve()
+    report_path.mkdir(parents=True, exist_ok=True)
+    state["manifest"]["report_folder"] = str(report_path.resolve())
 
     qa_report_path = report_path / "ingestion_qa_report.json"
-    state["manifest"]["qa_report"] = qa_report_path.resolve()
+    state["manifest"]["qa_report"] = str(qa_report_path.resolve())
 
     major_change_report_path = report_path / "major_change_report.json"
-    state["manifest"]["major_change_report"] = major_change_report_path.resolve()
+    state["manifest"]["major_change_report"] = str(major_change_report_path.resolve())
 
     preparation_report_path = report_path / "preparation_report.json"
-    state["manifest"]["preparation_report"] = preparation_report_path.resolve()
+    state["manifest"]["preparation_report"] = str(preparation_report_path.resolve())
     
 
 def pdf2jsonl(state: RAGIngestionState):
-    run_ingest(state["config"]["pdf_folder"], state["manifest"])
+    run_ingest(state["config"]["pdfs"], state["manifest"])
 
 def reset(state: RAGIngestionState):
     state["try_number"] += 1
@@ -76,15 +76,21 @@ def reset(state: RAGIngestionState):
     for dir in dirs:
         for file in dir.iterdir():
             if file.is_file():
-                file.unlink
-    
-    Path(state["manifest"]["processed_jsonl"]).unlink()
-    Path(state["manifest"]["final_jsonl"]).unlink()
-    Path(state["manifest"]["quarantined_jsonl"]).unlink()
-    Path(state["manifest"]["raw_jsonl"]).unlink()
-    Path(state["manifest"]["qa_report"]).unlink()
-    Path(state["manifest"]["major_change_report"]).unlink()
-    Path(state["manifest"]["preparation_report"]).unlink()
+                file.unlink()
+
+    files = [
+        Path(state["manifest"]["processed_jsonl"]),
+        Path(state["manifest"]["final_jsonl"]),
+        Path(state["manifest"]["quarantined_jsonl"]),
+        Path(state["manifest"]["raw_jsonl"]),
+        Path(state["manifest"]["qa_report"]),
+        Path(state["manifest"]["major_change_report"]),
+        Path(state["manifest"]["preparation_report"]),
+    ]
+
+    for file in files:
+        if file.is_file():
+            file.unlink()
 
 def fail_jsonl_verification(state: RAGIngestionState):
     shutil.rmtree(state["manifest"]["run_dir"], ignore_errors=True)
@@ -92,7 +98,7 @@ def fail_jsonl_verification(state: RAGIngestionState):
 
 def jsonl_cleanup(state: RAGIngestionState):
     refs =  (
-        f"- First-pass JSONL stream: {state['manifest']['clean_jsonl']}\n"
+        f"- First-pass JSONL stream: {state['manifest']['processed_jsonl']}\n"
         f"- Quarantined chunks: {state['manifest']['quarantined_jsonl']}\n"
         f"- Run logs: {state['manifest']['log_folder']}\n"
         f"- QA Report: {state['manifest']['qa_report']}\n"
@@ -104,8 +110,8 @@ def jsonl_cleanup(state: RAGIngestionState):
 
     prompt = (
         "Find the first pass at a cleanup of the JSONL stream in the reference files. Produce the artifacts on disk at the following locations:\n"
-        f"- `final_jsonl_path`: {state['anifest']['final_jsonl']}\n"
-        f"- `report_filepath`: {state['anifest']['preparation_report']}\n\n"
+        f"- `final_jsonl_path`: {state['manifest']['final_jsonl']}\n"
+        f"- `report_filepath`: {state['manifest']['preparation_report']}\n\n"
         "Reference Files:\n"
         f"{refs}"
     )
@@ -135,13 +141,13 @@ def empty(state: RAGIngestionState):
     pass
 
 def batch_chunks_by_document__lightrag(state: RAGIngestionState):
-    return _batch_chunks_by_documents(state, "lightrag")
+    return _batch_chunks_by_document(state, "lightrag")
 
 def batch_chunks_by_document__wiki(state: RAGIngestionState):
-    return _batch_chunks_by_documents(state, "wiki")
+    return _batch_chunks_by_document(state, "wiki")
 
 # TODO: might want to have some failsafe in here in case the queue is empty
-def _batch_chunks_by_documents(state: RAGIngestionState, branch: str):
+def _batch_chunks_by_document(state: RAGIngestionState, branch: str):
     doc_q = f"{branch}_doc_queue"
     cur_doc = f"current_{branch}_doc"
 
