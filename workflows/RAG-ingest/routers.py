@@ -30,7 +30,7 @@ def rag_verify(state) -> str:
     return "valid"
 
 def check_wiki_done_ingesting(state) -> bool:
-    return len(state["manifest"]["wiki_doc_queue"]) == 0
+    return len(state["wiki_doc_queue"]) == 0
 
 def check_lightrag_done_ingesting(state) -> bool:
-    return len(state["manifest"]["lightrag_doc_queue"]) == 0
+    return len(state["lightrag_doc_queue"]) == 0

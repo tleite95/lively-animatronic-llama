@@ -22,7 +22,7 @@ def run_prompt(prompt: str, agent: str, skill: str | None = None, model: str = "
         "log_file": None,
     }
 
-    opencode2.chat(argparse.Namespace(**args))
+    return opencode2.chat(argparse.Namespace(**args))
 
 def run_ingest(pdf_folder: str, manifest: any):
     args = {
@@ -43,4 +43,4 @@ def run_ingest(pdf_folder: str, manifest: any):
         "limit": None,
     }
     
-    ingest.run_pipeline(argparse.Namespace(**args))
+    return ingest.run_pipeline(argparse.Namespace(**args))

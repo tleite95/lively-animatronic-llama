@@ -63,13 +63,25 @@ Create configured report and log directories if missing.
 14. Validate cleaned outputs against the paired agent validation guidelines.
 15. Write the preparation report to `report_filepath`.
 
+## Boundary repair procedure
+
+Use this procedure when reviewing candidate output chunks. Keep repairs source-faithful and minimal, but prioritize semantic boundary completeness over preserving original split points.
+
+1. If a chunk starts mid-sentence, mid-paragraph, with a dangling pronoun, discourse connector, lowercase continuation, orphaned citation phrase, or detached table/caption/list continuation, first attempt to repair it with the immediately preceding chunk.
+2. If a chunk ends mid-sentence, mid-paragraph, with an unfinished clause, open parenthesis, trailing comma/colon, unresolved citation-bearing claim, broken list item, or separated table/caption/equation context, first attempt to repair it with the immediately following chunk.
+3. If a simple merge creates an oversized or semantically mixed chunk, move only the smallest complete unit needed to restore boundaries, such as a sentence, paragraph, caption, table row, list item, or equation explanation.
+4. If several adjacent chunks were split at the wrong places, merge them temporarily and then split again at complete sentence, paragraph, section, table, caption, list, or equation-context boundaries.
+5. Do not repair by inventing missing content, filling table cells, paraphrasing scientific claims, or using raw PDFs.
+6. If boundary integrity cannot be restored from neighboring chunks or available machine-readable full-text context, route the record to exclusion or human review according to the paired agent contract.
+7. Do not emit production-bound chunks with unresolved boundary flags such as `starts_lowercase`, `ends_incomplete`, `dangling_caption`, `split_table`, `orphaned_citation`, or equivalent flags unless the defect has been repaired and the flag updated or removed.
+
 ## Cleaning checklist
 
 For each candidate output chunk:
 
 - Confirm the text is nonempty and source-traceable.
-- Confirm the chunk does not start or end partway through a sentence or thought stream when neighboring context can repair it.
-- Confirm bibliography, reference-list, boilerplate, publisher-note, copyright, and orphaned citation debris are excluded.
+- Confirm the chunk does not start or end partway through a sentence, paragraph, caption, table row, list item, equation explanation, citation-bearing claim, or thought stream when neighboring context or machine-readable full-text context can repair it.
+- Confirm bibliography, reference-list, boilerplate, publisher-note, copyright, acknowledgments, conflict/funding disclosures, and orphaned citation debris are excluded.
 - Confirm table repairs do not invent, reorder, or semantically alter data.
 - Confirm md5 `text_hash` is generated from cleaned text.
 - Confirm `rag_fitness_score` is rounded to two decimals on a 0 to 1 scale.
@@ -85,8 +97,10 @@ Require:
 - Every cleaned record has source provenance.
 - Every cleaned record has nonempty text.
 - Every cleaned record has a stable ID.
-- The share of incomplete or contextless chunks is below the configured threshold.
-- The share of likely reference/bibliography/boilerplate chunks in the cleaned stream is near zero.
+- No production-bound cleaned record has an unresolved incomplete-boundary or contextless-chunk quality flag. Any exception must be marked for human review and excluded from `final_jsonl_path` according to the paired agent contract.
+- The production-bound cleaned stream contains zero records that are primarily reference-list, bibliography, boilerplate, publisher-note, copyright, acknowledgments, conflict-of-interest disclosure, funding disclosure, DOI-list, URL-list, journal metadata, or orphaned citation debris.
 - No raw-PDF-only dependency is introduced.
 - Excluded chunks are accounted for with reasons in the preparation report.
 - Unknown or invalid `ingestion_strategy` values removed from cleaned records are summarized in the preparation report.
+- Human-review items are explicitly noted.
+- Unresolved incomplete-boundary, contextless, reference/bibliography, boilerplate, and orphaned-citation records are not emitted to the production-bound cleaned stream.

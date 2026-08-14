@@ -104,6 +104,77 @@ TEXT_PREVIEW_CHARS = 4000     # cap how much of a single text/reasoning delta we
 # HTTP client
 # --------------------------------------------------------------------------
 
+class ProviderUnavailableError(RuntimeError):
+    """Raised specifically when the model provider itself could not be
+    reached (HTTP 503, _tag "ServiceUnavailableError", message matching a
+    provider-request failure). See note on ServiceUnavailableGeneric below —
+    this _tag is a generic wrapper server-side, so this is only raised when
+    the message content actually indicates a provider-connectivity problem.
+    """
+
+    def __init__(self, service: str | None, detail: str):
+        self.service = service
+        self.detail = detail
+        super().__init__(
+            f"The model provider could not be reached (service: {service or 'unknown'}). "
+            f"OpenCode sent the request successfully, but the provider itself did not "
+            f"respond. This is a provider/network issue, not a bug in this script — check "
+            f"that the provider configured for this session's model is reachable and "
+            f"correctly configured. Raw detail: {detail}"
+        )
+
+
+class AgentNotFoundError(RuntimeError):
+    """Raised when a requested agent isn't found by GET /api/agent for the
+    given directory. Mirrors SkillNotFoundError: Agent.Info has both an
+    `id` and a `name`, so this is raised with the real available list
+    rather than a bare error, to make an id/name mismatch obvious."""
+
+    def __init__(self, requested: str, directory: str, available: list[dict]):
+        self.requested = requested
+        self.directory = directory
+        self.available = available
+        listing = ", ".join(f"{a.get('name')!r} (id={a.get('id')!r})" for a in available) or "(none found)"
+        super().__init__(
+            f"Agent {requested!r} not found for directory {directory!r}. "
+            f"Available agents here: {listing}"
+        )
+
+
+class ServiceUnavailableGeneric(RuntimeError):
+    """Raised for a 503 ServiceUnavailableError whose message doesn't match
+    a recognized specific case (provider failure, agent-not-found, etc.).
+    IMPORTANT: this _tag is a generic wrapper OpenCode uses for multiple
+    unrelated 'operation can't complete right now' conditions server-side
+    (confirmed by seeing it used for both provider failures AND agent
+    resolution failures) — there's no structured discriminator beyond the
+    message text, so this is the honest fallback rather than guessing."""
+
+    def __init__(self, service: str | None, detail: str):
+        self.service = service
+        self.detail = detail
+        super().__init__(f"Service unavailable (service: {service or 'unknown'}): {detail}")
+
+
+class SkillNotFoundError(RuntimeError):
+    """Raised when a requested skill isn't found by GET /api/skill for the
+    given directory. Skill.Info has both an `id` and a `name` field, and
+    they're not guaranteed to be the same string — this is raised with the
+    actual list of what's available so it's obvious whether the requested
+    skill just needs the right identifier, or genuinely isn't registered
+    for that directory."""
+
+    def __init__(self, requested: str, directory: str, available: list[dict]):
+        self.requested = requested
+        self.directory = directory
+        self.available = available
+        listing = ", ".join(f"{s.get('name')!r} (id={s.get('id')!r})" for s in available) or "(none found)"
+        super().__init__(
+            f"Skill {requested!r} not found for directory {directory!r}. "
+            f"Available skills here: {listing}"
+        )
+
+
 class OpenCodeClient:
     def __init__(
         self,
@@ -137,12 +208,52 @@ class OpenCodeClient:
                 "startup if you didn't set one explicitly."
             )
 
+    def _check_provider_error(self, resp: requests.Response) -> None:
+        """The v2 API's _tag "ServiceUnavailableError" is a generic wrapper
+        used for multiple, unrelated 'operation can't complete right now'
+        conditions server-side — confirmed by seeing it used both for an
+        actual upstream provider failure AND for agent resolution failure,
+        with no structured field distinguishing which. So: pattern-match the
+        message for known specific cases and raise the right exception type;
+        fall back to the honest generic ServiceUnavailableGeneric otherwise
+        rather than mislabeling everything as a provider problem."""
+        if resp.status_code != 503:
+            return
+        try:
+            body = resp.json()
+        except ValueError:
+            return
+        if body.get("_tag") != "ServiceUnavailableError":
+            return
+        message = body.get("message", "")
+        service = body.get("service")
+        lower = message.lower()
+        if "agent not found" in lower:
+            # message is typically "agent not found: <id>"
+            agent_id = message.split(":", 1)[-1].strip() if ":" in message else message
+            raise AgentNotFoundError(requested=agent_id, directory="(unknown)", available=[])
+        if "provider request failed" in lower or "requestexecutor" in lower:
+            raise ProviderUnavailableError(service=service, detail=message)
+        raise ServiceUnavailableGeneric(service=service, detail=message)
+
+    def _raise_for_status(self, resp: requests.Response) -> None:
+        """Like resp.raise_for_status(), but includes the response body — the
+        v2 API is 'experimental' and its validation error bodies (e.g. which
+        field was rejected) are the fastest way to diagnose a 400, rather than
+        requests' default one-line summary."""
+        if resp.status_code >= 400:
+            raise requests.exceptions.HTTPError(
+                f"{resp.status_code} error for {resp.request.method} {resp.url}\n"
+                f"Response body: {resp.text[:2000]}",
+                response=resp,
+            )
+
     # -- health / misc -------------------------------------------------
 
     def health(self) -> dict:
         resp = self.session.get(self._url("/api/health"))
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
         return resp.json()
 
     # -- session lifecycle ----------------------------------------------
@@ -171,19 +282,19 @@ class OpenCodeClient:
 
         resp = self.session.post(self._url("/api/session"), json=body)
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
         return resp.json()["data"]["id"]
 
     def get_session(self, session_id: str) -> dict:
         resp = self.session.get(self._url(f"/api/session/{session_id}"))
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
         return resp.json()["data"]
 
     def list_sessions(self) -> list[dict]:
         resp = self.session.get(self._url("/api/session"))
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
         return resp.json()["data"]
 
     def switch_agent(self, session_id: str, agent: str) -> None:
@@ -191,7 +302,39 @@ class OpenCodeClient:
             self._url(f"/api/session/{session_id}/agent"), json={"agent": agent}
         )
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
+
+    def list_agents(self, directory: str | None = None) -> list[dict]:
+        """GET /api/agent — returns Agent.Info[] scoped to `directory` (same
+        deepObject query style as /api/skill: location[directory]=...)."""
+        params = {}
+        if directory:
+            params["location[directory]"] = directory
+        resp = self.session.get(self._url("/api/agent"), params=params)
+        self._check_auth_error(resp)
+        self._raise_for_status(resp)
+        return resp.json()["data"]
+
+    def resolve_agent(self, directory: str, agent_query: str) -> str:
+        """Looks up `agent_query` (as typed by the user, e.g. matching what
+        the TUI displays) against the real agent list for `directory` and
+        returns the identifier the API actually expects. Agent.Info has
+        separate `id` and `name` fields that aren't guaranteed to match —
+        this is exactly the failure mode that surfaced as a misleading
+        ProviderUnavailableError before _check_provider_error learned to
+        disambiguate 'agent not found' messages. Raises AgentNotFoundError
+        (with the real available list) if nothing matches."""
+        agents = self.list_agents(directory=directory)
+        for a in agents:
+            if a.get("id") == agent_query:
+                return a["id"]
+        for a in agents:
+            if (a.get("name") or "").lower() == agent_query.lower():
+                return a["id"]
+        for a in agents:
+            if (a.get("id") or "").lower() == agent_query.lower():
+                return a["id"]
+        raise AgentNotFoundError(requested=agent_query, directory=directory, available=agents)
 
     def switch_model(self, session_id: str, provider_id: str, model_id: str, variant: str | None = None) -> None:
         model_ref = {"id": model_id, "providerID": provider_id}
@@ -201,7 +344,38 @@ class OpenCodeClient:
             self._url(f"/api/session/{session_id}/model"), json={"model": model_ref}
         )
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
+
+    def list_skills(self, directory: str | None = None) -> list[dict]:
+        """GET /api/skill — returns Skill.Info[] scoped to `directory` (query
+        param uses OpenAPI 'deepObject' style: location[directory]=...)."""
+        params = {}
+        if directory:
+            params["location[directory]"] = directory
+        resp = self.session.get(self._url("/api/skill"), params=params)
+        self._check_auth_error(resp)
+        self._raise_for_status(resp)
+        return resp.json()["data"]
+
+    def resolve_skill(self, directory: str, skill_query: str) -> str:
+        """Looks up `skill_query` against the real skill list for `directory`
+        and returns the identifier `activate_skill` should actually send.
+        Skill.Info has separate `id` and `name` fields (e.g. a TUI might
+        display `name` while the activation endpoint expects `id`, or vice
+        versa) — this matches either, case-insensitively, before giving up.
+        Raises SkillNotFoundError (with the real available list) if nothing
+        matches, rather than a bare 404."""
+        skills = self.list_skills(directory=directory)
+        for s in skills:
+            if s.get("id") == skill_query:
+                return s["id"]
+        for s in skills:
+            if (s.get("name") or "").lower() == skill_query.lower():
+                return s["id"]
+        for s in skills:
+            if (s.get("id") or "").lower() == skill_query.lower():
+                return s["id"]
+        raise SkillNotFoundError(requested=skill_query, directory=directory, available=skills)
 
     def activate_skill(self, session_id: str, skill: str, resume: bool = False) -> None:
         resp = self.session.post(
@@ -209,16 +383,59 @@ class OpenCodeClient:
             json={"skill": skill, "resume": resume},
         )
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        if resp.status_code == 404:
+            try:
+                body = resp.json()
+            except ValueError:
+                body = {}
+            if body.get("_tag") == "SkillNotFoundError":
+                # Caller should normally have gone through resolve_skill() first,
+                # so this is a fallback in case that was skipped or the skill
+                # disappeared between resolution and activation.
+                raise SkillNotFoundError(requested=body.get("skill", skill), directory="(unknown)", available=[])
+        self._raise_for_status(resp)
 
     def send_prompt(self, session_id: str, text: str, resume: bool = True) -> dict:
+        # Confirmed via the live OpenAPI doc (both the request schema AND,
+        # critically, this endpoint's own summary text): "Durably admit one
+        # session input and schedule agent-loop execution unless resume is
+        # false." So `resume` genuinely controls whether the agent loop
+        # actually runs — an earlier version of this client omitted it
+        # entirely as "unconfirmed," which is the most likely reason /prompt
+        # appeared to only stage a message without ever generating a reply.
+        # Sending resume=True explicitly is what actually triggers the full
+        # agent loop (tools, skills, sub-agents) — this is the real "run a
+        # turn" path; see generate() below for the much more limited
+        # alternative.
+        body: dict[str, Any] = {"text": text, "resume": resume}
         resp = self.session.post(
             self._url(f"/api/session/{session_id}/prompt"),
-            json={"text": text, "resume": resume},
+            json=body,
         )
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._check_provider_error(resp)
+        self._raise_for_status(resp)
         return resp.json()["data"]
+
+    def generate(self, session_id: str, prompt: str, timeout: float = 600.0) -> str:
+        """POST /api/session/{id}/generate. NOTE: confirmed via the OpenAPI
+        doc's own description — "Generate transient text from the current
+        session context WITHOUT MUTATING SESSION HISTORY" — this is a
+        lightweight, non-agentic single completion. It does NOT run tools,
+        does NOT invoke skills/sub-agents, does NOT persist a message, and
+        does NOT spend recorded tokens. It's useful for a one-off text
+        completion over existing context, but NOT for agentic tasks that
+        need to actually act (write files, call tools, etc.) — use
+        send_prompt(resume=True) + wait() for that instead."""
+        resp = self.session.post(
+            self._url(f"/api/session/{session_id}/generate"),
+            json={"prompt": prompt},
+            timeout=timeout + 30,
+        )
+        self._check_auth_error(resp)
+        self._check_provider_error(resp)
+        self._raise_for_status(resp)
+        return resp.json()["data"]["text"]
 
     def wait(self, session_id: str, timeout: float = 600.0) -> None:
         """Blocks (server-side) until the session's agent loop goes idle."""
@@ -228,21 +445,28 @@ class OpenCodeClient:
         )
         if resp.status_code not in (200, 204):
             self._check_auth_error(resp)
-            resp.raise_for_status()
+            self._check_provider_error(resp)
+            self._raise_for_status(resp)
 
-    def get_messages(self, session_id: str, order: str = "asc", limit: int = 500) -> list[dict]:
+    def get_messages(self, session_id: str, order: str = "asc", limit: int = 200) -> list[dict]:
+        # NOTE: 200 is the server's actual max (confirmed via a live 400:
+        # "Expected a value less than or equal to 200, got 500 at [\"limit\"]").
+        # This was silently breaking every single poll — caught by the
+        # consecutive-poll-failure surfacing, since it's a real HTTPError,
+        # not a transient network blip, so it fired the same "lost the
+        # ability to poll" alert every run once that safeguard was added.
         resp = self.session.get(
             self._url(f"/api/session/{session_id}/message"),
             params={"order": order, "limit": limit},
         )
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
         return resp.json()["data"]
 
     def list_models(self) -> list[dict]:
         resp = self.session.get(self._url("/api/model"))
         self._check_auth_error(resp)
-        resp.raise_for_status()
+        self._raise_for_status(resp)
         return resp.json()["data"]
 
     def event_stream(self):
@@ -254,7 +478,7 @@ class OpenCodeClient:
         """
         with self.session.get(self._url("/api/event"), stream=True, timeout=None) as resp:
             self._check_auth_error(resp)
-            resp.raise_for_status()
+            self._raise_for_status(resp)
             event_name = None
             data_lines: list[str] = []
             for raw_line in resp.iter_lines(decode_unicode=True):
@@ -391,18 +615,20 @@ def null_listener(_event: Event) -> None:
 # -- reference listener #1: human-readable indented tree, to stdout or a file --
 
 _ICONS = {
-    "lifecycle": "\u25B6",       # ▶
-    "status": "\U0001F4CA",      # 📊
-    "text": "\U0001F4AC",        # 💬
-    "reasoning": "\U0001F9E0",   # 🧠
-    "tool": "\U0001F527",        # 🔧 (overridden to 🤖/✅/❌ below)
-    "skill": "\U0001F4CE",       # 📎
-    "agent-switched": "\U0001F501",
-    "model-switched": "\U0001F501",
-    "user": "\U0001F464",
-    "compaction": "\U0001F5DC",
-    "subagent-spawned": "\U0001F440",
-    "final": "\U0001F3C1",       # 🏁
+    "lifecycle": "\u25B6",            # ▶
+    "status": "\U0001F4CA",           # 📊
+    "text": "\U0001F4AC",             # 💬
+    "reasoning": "\U0001F9E0",        # 🧠
+    "tool": "\U0001F527",             # 🔧 (overridden to 🤖/✅/❌ below)
+    "skill": "\U0001F4CE",            # 📎
+    "agent-switched": "\U0001F501",   # 🔁
+    "model-switched": "\U0001F501",   # 🔁
+    "user": "\U0001F464",             # 👤
+    "compaction": "\U0001F5DC",       # 🗜
+    "subagent-spawned": "\U0001F440", # 👀
+    "final": "\U0001F3C1",            # 🏁
+    "error": "\U0001F6A8",            # 🚨
+    "unknown": "\u2753",              # ❓
 }
 
 
@@ -440,6 +666,10 @@ def _format_event(event: Event) -> Optional[str]:
         return f"-> spawned child session {d.get('child_session_id')} ({event.name})"
     if event.kind == "lifecycle":
         return d.get("message", event.name)
+    if event.kind == "error":
+        return d.get("message", str(d.get("error")))
+    if event.kind == "unknown":
+        return d.get("message", f"unrecognized: {event.name}")
     if event.kind == "final":
         return f"final reply ({len(d.get('reply', ''))} chars):\n{d.get('reply', '')}"
     return None
@@ -522,6 +752,8 @@ class SessionNode:
     claimed_child_ids: set = field(default_factory=set)
     last_status_line: Optional[str] = None
     model_ref: Optional[dict] = None
+    consecutive_poll_failures: int = 0
+    poll_failure_reported: bool = False
 
 
 class Monitor:
@@ -535,7 +767,10 @@ class Monitor:
         self.on_event = on_event
         self.nodes: dict[str, SessionNode] = {}
 
-    def run(self, root_session_id: str, root_agent_label: str, wait_timeout: float) -> str:
+    def run(self, root_session_id: str, root_agent_label: str, run_fn: Callable[[], str]) -> str:
+        """Starts `run_fn` (a blocking call that runs the turn and returns the
+        final reply text, e.g. client.generate(...)) in a background thread,
+        and renders the live tree via SSE-nudged polling until it completes."""
         self.nodes[root_session_id] = SessionNode(
             session_id=root_session_id, parent_id=None, depth=0, label=root_agent_label
         )
@@ -543,37 +778,52 @@ class Monitor:
         waker = SSEWaker(self.client)
         waker.start()
 
-        wait_error: list[Exception] = []
-        wait_done = threading.Event()
+        run_result: list[str] = []
+        run_error: list[Exception] = []
+        run_done = threading.Event()
 
-        def _wait_target():
+        def _run_target():
             try:
-                self.client.wait(root_session_id, timeout=wait_timeout)
+                run_result.append(run_fn())
             except Exception as e:  # noqa: BLE001
-                wait_error.append(e)
+                run_error.append(e)
+                if isinstance(e, ProviderUnavailableError):
+                    msg = f"model provider unreachable (service: {e.service}): {e.detail}"
+                elif isinstance(e, AgentNotFoundError):
+                    msg = str(e)
+                elif isinstance(e, ServiceUnavailableGeneric):
+                    msg = f"service unavailable (service: {e.service}): {e.detail}"
+                else:
+                    msg = f"generation failed: {e}"
+                self._emit(
+                    self.nodes[root_session_id], key=(root_session_id, "run-error"),
+                    kind="error", data={"message": msg},
+                )
             finally:
-                wait_done.set()
+                run_done.set()
 
-        wait_thread = threading.Thread(target=_wait_target, daemon=True)
-        wait_thread.start()
+        run_thread = threading.Thread(target=_run_target, daemon=True)
+        run_thread.start()
 
-        grace_passes_remaining = 2  # extra syncs after root goes idle, to catch trailing sub-agent output
+        grace_passes_remaining = 2  # extra syncs after the run finishes, to catch trailing sub-agent output
         try:
             while True:
                 waker.wait(timeout=POLL_FALLBACK_INTERVAL)
                 self._sync_all()
-                if wait_done.is_set():
+                if run_done.is_set():
                     if grace_passes_remaining <= 0:
                         break
                     grace_passes_remaining -= 1
         finally:
             waker.stop()
 
-        if wait_error:
-            raise wait_error[0]
+        if run_error:
+            raise run_error[0]
 
         root = self.nodes[root_session_id]
-        reply = self._final_text(root_session_id)
+        # Prefer generate()'s own return value (authoritative); fall back to
+        # scanning message history only if it came back empty for some reason.
+        reply = run_result[0] if run_result and run_result[0] else self._final_text(root_session_id)
         self._emit(
             root, key=(root_session_id, "final"), kind="final", data={"reply": reply}
         )
@@ -613,18 +863,63 @@ class Monitor:
     def _sync_node(self, node: SessionNode) -> None:
         try:
             info = self.client.get_session(node.session_id)
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
+            self._note_poll_failure(node, e)
             return
-        node.model_ref = info.get("model")
-        self._maybe_emit_status(node, info)
-
         try:
             messages = self.client.get_messages(node.session_id, order="asc")
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
+            self._note_poll_failure(node, e)
             return
+
+        # Both calls succeeded — clear any prior failure streak.
+        node.consecutive_poll_failures = 0
+        node.poll_failure_reported = False
+
+        node.model_ref = info.get("model")
+        self._maybe_emit_status(node, info)
+        self._maybe_emit_session_error(node, info)
 
         for message in messages:
             self._handle_message(node, message)
+
+    def _note_poll_failure(self, node: SessionNode, exc: Exception) -> None:
+        """Polling GET /session or /message failed. A single blip isn't
+        worth interrupting the log for (transient network hiccups happen),
+        but if this keeps failing, silently doing nothing would be
+        indistinguishable from 'the agent genuinely isn't doing anything' —
+        which is exactly the ambiguity that makes a hung run hard to debug.
+        So: report once after a few consecutive failures, so it's clear the
+        problem is 'we can't observe the session' rather than 'nothing is
+        happening in it'."""
+        node.consecutive_poll_failures += 1
+        threshold = 3  # ~3 poll cycles of sustained failure before flagging
+        if node.consecutive_poll_failures >= threshold and not node.poll_failure_reported:
+            node.poll_failure_reported = True
+            self._emit(
+                node, key=(node.session_id, "poll-failure"), kind="error",
+                data={
+                    "message": (
+                        f"lost the ability to poll this session {node.consecutive_poll_failures} times in a row "
+                        f"(most recent error: {exc}). The agent may still be running server-side — /wait is a "
+                        f"separate request — but this client can no longer observe its progress. If this "
+                        f"persists, the log going quiet does NOT mean the agent has stopped."
+                    )
+                },
+            )
+
+    def _maybe_emit_session_error(self, node: SessionNode, info: dict) -> None:
+        err = info.get("error")
+        if not err:
+            return
+        key = (node.session_id, "session-error")
+        if node.part_state.get(key, {}).get("reported"):
+            return
+        node.part_state[key] = {"reported": True}
+        self._emit(
+            node, key=key, kind="error",
+            data={"error": err, "message": f"session error: {_short_repr(err, 500)}"},
+        )
 
     def _maybe_emit_status(self, node: SessionNode, info: dict) -> None:
         tokens = info.get("tokens") or {}
@@ -682,11 +977,31 @@ class Monitor:
                 node, key=key, kind="compaction",
                 status=message.get("status"), data={"reason": message.get("reason")},
             )
-        # "synthetic" / "system" messages are intentionally not emitted (low signal)
+        elif msg_type in ("synthetic", "system"):
+            pass  # intentionally low-signal, not emitted
+        else:
+            # Anything not explicitly handled above (including message types
+            # this script doesn't yet know about) is still surfaced, rather
+            # than silently dropped, so failures aren't invisible.
+            self._emit(
+                node, key=key, kind="unknown", name=msg_type,
+                data={"message": f"unrecognized message type '{msg_type}': {_short_repr(message, 500)}"},
+            )
 
     def _handle_assistant_content(self, node: SessionNode, message: dict) -> None:
         msg_id = message.get("id")
         node.known_message_ids.add(msg_id)
+
+        err = message.get("error")
+        if err:
+            key = (node.session_id, msg_id, "error")
+            if not node.part_state.get(key, {}).get("reported"):
+                node.part_state[key] = {"reported": True}
+                self._emit(
+                    node, key=key, kind="error",
+                    data={"error": err, "message": f"assistant message error: {_short_repr(err, 500)}"},
+                )
+
         content = message.get("content") or []
 
         for idx, part in enumerate(content):
@@ -839,41 +1154,53 @@ def chat(args: argparse.Namespace, on_event: Optional[Listener] = None) -> str:
         client = OpenCodeClient(args.base_url, username=args.username, password=args.password)
         client.health()
 
+        resolved_agent = client.resolve_agent(args.directory, args.agent)
         session_id = client.create_session(
             directory=args.directory,
-            agent=args.agent,
+            agent=resolved_agent,
             title=args.title,
             provider_id=args.provider,
             model_id=args.model,
             variant=args.variant,
         )
         model_note = f", model={args.provider}/{args.model}" if args.provider else ""
-        _root = SessionNode(session_id=session_id, parent_id=None, depth=0, label=f"root:{args.agent}")
+        agent_note = f" (resolved from {args.agent!r})" if resolved_agent != args.agent else ""
+        _root = SessionNode(session_id=session_id, parent_id=None, depth=0, label=f"root:{resolved_agent}")
         on_event(Event(
             ts=time.time(), session_id=session_id, depth=0,
             key=(session_id, "lifecycle:created"), parent_key=None, kind="lifecycle",
             name="session-created",
-            data={"message": f"session created ({session_id}) agent={args.agent}, directory={args.directory}{model_note}"},
+            data={"message": f"session created ({session_id}) agent={resolved_agent}{agent_note}, directory={args.directory}{model_note}"},
         ))
 
         if args.skill:
-            client.activate_skill(session_id, args.skill, resume=False)
+            resolved_skill = client.resolve_skill(args.directory, args.skill)
+            client.activate_skill(session_id, resolved_skill, resume=False)
+            resolved_note = f" (resolved to id={resolved_skill!r})" if resolved_skill != args.skill else ""
             on_event(Event(
                 ts=time.time(), session_id=session_id, depth=0,
                 key=(session_id, "lifecycle:skill"), parent_key=None, kind="lifecycle",
-                name="skill-requested", data={"message": f"skill requested: {args.skill}"},
+                name="skill-requested", data={"message": f"skill requested: {args.skill}{resolved_note}"},
             ))
 
-        client.send_prompt(session_id, args.prompt, resume=True)
         on_event(Event(
             ts=time.time(), session_id=session_id, depth=0,
             key=(session_id, "lifecycle:prompt"), parent_key=None, kind="lifecycle",
-            name="prompt-sent", data={"message": "prompt sent, waiting for response..."},
+            name="prompt-started", data={"message": "prompt sent (resume=True), running agent loop..."},
         ))
+
+        def _run_full_agent_loop() -> str:
+            client.send_prompt(session_id, args.prompt, resume=True)
+            client.wait(session_id, timeout=args.timeout)
+            return ""  # Monitor.run() falls back to scanning message history for the real reply
 
         catalog = ModelCatalog(client)
         monitor = Monitor(client, catalog, on_event=on_event)
-        return monitor.run(session_id, root_agent_label=f"root:{args.agent}", wait_timeout=args.timeout)
+        return monitor.run(
+            session_id,
+            root_agent_label=f"root:{resolved_agent}",
+            run_fn=_run_full_agent_loop,
+        )
     finally:
         if close_ctx is not None:
             close_ctx.__exit__(None, None, None)

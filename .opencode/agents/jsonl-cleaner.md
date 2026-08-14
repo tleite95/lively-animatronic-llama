@@ -31,7 +31,19 @@ Do not treat any other referenced file as an output unless the user explicitly c
 
 Produce a cleaned, RAG-fit JSONL stream that preserves source fidelity while improving retrieval utility. The cleaned stream should contain chunks that are coherent, useful, minimally transformed, provenance-preserving, and safe to pass to both the downstream wiki and LightRAG ingestion.
 
-This stage exists because the raw PDF-to-JSONL output is often too noisy for direct insertion. Do not allow raw extraction garbage, reference-list debris, boilerplate, malformed citation fragments, publisher notes, orphaned table cells, or badly broken chunks to pass into downstream RAG layers. Rearrange content within chunks *minimally* to ensure chunks do not start or end partway through a sentence or thought stream.
+This stage exists because the raw PDF-to-JSONL output is often too noisy for direct insertion. Do not allow raw extraction garbage, reference-list debris, boilerplate, malformed citation fragments, publisher notes, orphaned table cells, or badly broken chunks to pass into downstream RAG layers. **IMPORTANT:** Production-bound chunks must be semantically boundary-complete. Rearrange content within chunks *minimally*, but do not preserve defective boundaries merely to minimize edits. If a chunk starts or ends partway through a sentence, paragraph, caption, table row, list item, equation explanation, or citation-bearing claim, repair it from neighboring chunks or machine-readable full-text context when possible. If the boundary cannot be repaired without unsupported reconstruction, exclude the record or mark it for human review.
+
+## Non-negotiable production gates
+
+A record must not be written to `final_jsonl_path` as production-bound cleaned output if any of the following are true:
+
+1. The chunk begins or ends inside a sentence, paragraph, list item, table row, figure/table caption, equation explanation, or citation-bearing claim, and neighboring chunk or full-text context is available to repair it.
+2. The chunk is primarily bibliography, reference-list material, publisher boilerplate, copyright text, funding text, acknowledgments, conflict-of-interest disclosure, generative-AI disclosure, orphaned citation debris, DOI lists, URL lists, or journal metadata.
+3. The chunk lacks source provenance, nonempty cleaned text, or a stable ID.
+4. The chunk has unresolved quality flags indicating incomplete boundary, orphaned citation fragment, split table/caption context, severe OCR corruption, or low context.
+5. The scientific meaning of the chunk cannot be preserved without unsupported reconstruction.
+
+Such records must be merged, split, repaired, excluded, or marked for human review. They must not be emitted as `ready`, `ready_with_minor_formatting_repairs`, `merged_boundary_repair`, or `split_boundary_repair` unless the defect has been resolved.
 
 ## Allowed transformations
 
@@ -86,15 +98,16 @@ In this preparation stage, preserve `ingestion_strategy` only to retain context 
 For each output chunk, preserve or create the following fields when available:
 
 ```text
-document_id
-source_document_title
-source_document_path
-ingestion_strategy
+source_document_id
+source_document_name
+source_relative_path
 page_numbers
 headings
-section_path
-content_type
 text
+content_type
+doi
+extracted_dois
+ingestion_strategy
 text_hash
 quality_flags
 rag_fitness_score
@@ -104,6 +117,15 @@ acs_citation
 ```
 
 Use deterministic IDs where possible. `rag_fitness_score` should be qualitative, rounded to two decimals, and normalized to a scale of 0 (unusable) to 1 (perfect). `acs_citation` should simply cite the source document, not traverse a reference tree to find the initial source of the data. Use md5 to generate `text_hash`.
+
+High `rag_fitness_score` values are reserved for complete, coherent, source-traceable, semantically substantive scientific content. Apply these maximum scores unless a stricter exclusion rule applies:
+
+- Unresolved incomplete boundary: max 0.60.
+- Human-review item: max 0.50.
+- Mostly URL, DOI, citation, or journal metadata: max 0.40.
+- Boilerplate, copyright, publisher note, funding, conflict disclosure, acknowledgments, or reference-list material: max 0.30 if retained for audit; normally exclude from `final_jsonl_path`.
+- Severe OCR or formatting artifacts that impair meaning: max 0.50.
+- Scores above 0.90 require clean boundaries, useful provenance, minimal extraction artifacts, and substantive scientific content.
 
 ## Recommended statuses
 
@@ -124,6 +146,8 @@ needs_human_review
 
 Only records with a `ready*`, `merged_boundary_repair`, or `split_boundary_repair` status should be written to the cleaned RAG-fit stream. Other records should be represented in the preparation report or human-review items with explicit reasons.
 
+Records marked `needs_human_review` must not be written to `final_jsonl_path`. They belong only in the preparation report unless the user explicitly requests a separate human-review artifact.
+
 ## Validation guidelines
 
 Before writing final outputs, validate that:
@@ -132,8 +156,8 @@ Before writing final outputs, validate that:
 2. Every cleaned record has source provenance.
 3. Every cleaned record has nonempty text.
 4. Every cleaned record has a stable ID.
-5. The share of incomplete or contextless chunks is below the configured threshold.
-6. The share of likely reference/bibliography/boilerplate chunks in the cleaned stream is near zero.
+5. No production-bound cleaned record has an unresolved incomplete-boundary or contextless-chunk quality flag. Any exception must be marked `needs_human_review` and excluded from `final_jsonl_path`.
+6. The production-bound cleaned stream contains zero records that are primarily reference-list, bibliography, boilerplate, publisher-note, copyright, acknowledgments, conflict-of-interest disclosure, funding disclosure, DOI-list, URL-list, journal metadata, or orphaned citation debris.
 7. No raw-PDF-only dependency is introduced.
 8. All excluded chunks are accounted for with reasons in the preparation report.
 9. Unknown or invalid `ingestion_strategy` values were removed from production-bound cleaned records and summarized in the preparation report.

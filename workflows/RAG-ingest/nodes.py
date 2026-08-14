@@ -116,7 +116,7 @@ def jsonl_cleanup(state: RAGIngestionState):
         f"{refs}"
     )
 
-    run_prompt(prompt, agent="json-cleaner", skill="jsonl-to-rag", run_id=state["run_id"])
+    run_prompt(prompt, agent="jsonl-cleaner", skill="jsonl-to-rag", run_id=state["run_id"])
 
 
 def fail_jsonl_cleanup(state: RAGIngestionState):
@@ -132,7 +132,7 @@ def branch_lightrag_wiki(state: RAGIngestionState):
 
     with open(state["manifest"]["final_jsonl"], "r") as ingestion_stream:
         for line in ingestion_stream:
-            doc_queue.add(json.loads(line.strip())["document_name"])
+            doc_queue.add(json.loads(line.strip())["source_document_name"])
 
     state["wiki_doc_queue"] = list(doc_queue)
     state["lightrag_doc_queue"] = list(doc_queue)
@@ -157,7 +157,7 @@ def _batch_chunks_by_document(state: RAGIngestionState, branch: str):
     with open(state["manifest"]["final_jsonl"], "r") as ingestion_stream:
         for line in ingestion_stream:
             record = json.loads(line.strip())
-            if record["document_name"] == doc_name:
+            if record["source_document_name"] == doc_name:
                 chunks.append(record)
     state[cur_doc] = chunks
 

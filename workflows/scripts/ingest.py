@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
 import difflib
+import hashlib
 import html
 import unicodedata
 import warnings
@@ -36,30 +37,34 @@ from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
-from scripts.util import utc_now
+PIPELINE_ID = "pdf2jsonl-docling-hybrid-v2"
 
 TOKEN_RE = re.compile(r"\b\w+[\w.-]*\b")
 SENTENCE_RE = re.compile(r"[^.!?]+[.!?]")
-LOWERCASE_START_RE = re.compile(r"^[a-zα-ωμ]")
-CAPTION_RE = re.compile(r"^\s*(?:fig(?:ure)?\.?|table|scheme)\s*\d*[A-Za-z]?", re.I)
-TABLE_HINT_RE = re.compile(r"\b(?:table|auc|accuracy|sensitivity|specificity|ppv|npv|tp|fp|tn|fn|rmse|mae|q2|r2|p\s*[<=>])\b", re.I)
-EQUATION_HINT_RE = re.compile(r"(^|\s)(?:=|≤|≥|±|∑|√|Δ|μ|σ|α|β|γ|λ|mol|mg/kg|µg/L|ng/L)(\s|$)")
-REFERENCE_HEADING_RE = re.compile(r"^(?:\d+\.?\s*)?(references?|bibliography)$", re.I)
-TERMINAL_RE = re.compile(r"[.!?。！？)\]}\"]\s*$")
-LONG_TOKEN_RE = re.compile(r"\b[^\s]{90,}\b")
+TERMINAL_RE = re.compile(r"[.!?]['\")\]]?\s*$")
+LOWERCASE_START_RE = re.compile(r"^\s*[a-z]\w+")
+CAPTION_RE = re.compile(r"^\s*(fig(?:ure)?\.?|table|scheme|supplementary)\s*\d+", re.I)
+EQUATION_HINT_RE = re.compile(r"\b(eq\.?|equation|formula)\b|[=≈≤≥±→↔]", re.I)
+REFERENCE_HEADING_RE = re.compile(r"\s*(references?|bibliography|literature cited)\s*", re.I)
+TABLE_HINT_RE = re.compile(r"\b(table|endpoint|assay|value|mean|sd|ci|p\s*[<=>])\b", re.I)
 SCIENCE_SIGNAL_RE = re.compile(
-    r"\b(?:toxicity|exposure|dose|response|endpoint|assay|compound|chemical|model|"
-    r"cell|gene|protein|receptor|environmental|biomarker|metabol|ecotoxic|concentration|"
-    r"activity|inhibition|validation|dataset|species|pollutant|contaminant)\b",
+    r"\b(toxic|exposure|assay|endpoint|dose|concentration|chemical|compound|species|model|"
+    r"AOP|adverse outcome|read-across|QSAR|in vitro|in vivo|risk|hazard|uncertainty|"
+    r"mechanism|pathway|regulatory|guidance|metabol|receptor|gene|protein|cell|environment)\b",
     re.I,
 )
+LONG_TOKEN_RE = re.compile(r"\S{90,}")
+DOI_PATTERN = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+", re.I)
 
-PIPELINE_ID = "docling_hybrid_chunker_python_cleanup_v5_strategy_tagged"
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
 
 DOWNSTREAM_INGESTION_STRATEGIES = {
-    "A": "structural_decomposition",
-    "B": "argument_centric_extraction",
-    "C": "mechanism_or_case_extraction",
+    "A": "textbook_structural_decomposition",
+    "B": "review_argument_extraction",
+    "C": "primary_or_technical_mechanism_extraction",
     "D": "definitional_procedural_extraction",
 }
 
@@ -103,6 +108,8 @@ def get_quality_flags(text: str, content_type: str, headings: list[str]) -> list
         flags.append("ends_incomplete")
     if n_sentences == 0 and content_type not in {"equation", "table"}:
         flags.append("no_complete_sentence")
+    if content_type == "table" and "is_structured_table_text" in globals() and is_structured_table_text(text):
+        flags.append("structured_table")
     if LONG_TOKEN_RE.search(text):
         flags.append("long_token")
     if content_type == "table" and "|" not in text and n_sentences < 2:
@@ -134,6 +141,7 @@ def score_rag_fitness(text: str, content_type: str, flags: list[str]) -> float:
         "flattened_table_fragment": 0.12,
         "reference_section": 0.35,
         "layout_fragment": 0.10,
+        "structured_table": -0.03,
     }
     for flag in flags:
         score -= penalties.get(flag, 0.05)
@@ -148,14 +156,16 @@ def score_rag_fitness(text: str, content_type: str, flags: list[str]) -> float:
 def classify_content_type(text: str, headings: list[str]) -> str:
     stripped = (text or "").strip()
     lower_headings = " ".join(headings).lower()
+    if any(REFERENCE_HEADING_RE.fullmatch(h.strip()) for h in headings):
+        return "reference"
+    if "is_structured_table_text" in globals() and is_structured_table_text(stripped):
+        return "table"
+    if "|" in stripped or (TABLE_HINT_RE.search(stripped) and stripped.count("\n") >= 3):
+        return "table"
     if CAPTION_RE.search(stripped):
         return "caption"
     if "abstract" in lower_headings:
         return "abstract"
-    if any(REFERENCE_HEADING_RE.fullmatch(h.strip()) for h in headings):
-        return "reference"
-    if "|" in stripped or (TABLE_HINT_RE.search(stripped) and stripped.count("\n") >= 3):
-        return "table"
     if EQUATION_HINT_RE.search(stripped) and sentence_count(stripped) <= 1:
         return "equation"
     return "main_text"
@@ -278,30 +288,29 @@ def build_converter() -> DocumentConverter:
 
 
 def iter_pdf_paths(pdf_folder: Path, pdf_glob: str) -> list[Path]:
-    return sorted(pdf_folder.glob(pdf_glob))
+    return sorted(p for p in pdf_folder.glob(pdf_glob) if p.is_file() and p.suffix.lower() == ".pdf")
 
 
-def lookup_crossref_metadata(doi: str | None, mailto: str | None = None, timeout: int = 8) -> dict[str, Any]:
-    doi = normalize_doi_candidate(doi)
+def lookup_crossref_metadata(doi: str | None, mailto: str | None = None, timeout: int = 10) -> dict[str, Any]:
     if not doi:
         return {}
-    encoded = urllib.parse.quote(doi)
-    url = f"https://api.crossref.org/works/{encoded}"
+    url = "https://api.crossref.org/works/" + urllib.parse.quote(doi)
     if mailto:
         url += "?mailto=" + urllib.parse.quote(mailto)
+    req = urllib.request.Request(url, headers={"User-Agent": f"{PIPELINE_ID} (mailto:{mailto or 'none'})"})
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
         msg = payload.get("message", {})
         return {
+            "doi": msg.get("DOI"),
             "title": (msg.get("title") or [None])[0],
             "container_title": (msg.get("container-title") or [None])[0],
-            "published_print": msg.get("published-print"),
-            "published_online": msg.get("published-online"),
             "publisher": msg.get("publisher"),
+            "published": msg.get("published-print") or msg.get("published-online") or msg.get("issued"),
             "type": msg.get("type"),
-            "doi": normalize_doi_candidate(msg.get("DOI")) or doi,
             "url": msg.get("URL"),
+            "crossref_indexed": True,
         }
     except Exception as exc:
         return {"doi_lookup_error": str(exc), "doi": doi}
@@ -339,6 +348,7 @@ def make_row(
         "document_metadata": document_metadata,
         "quality_flags": flags,
         "rag_fitness_score": rag_score,
+        "text_hash": hashlib.md5(text.encode("utf-8")).hexdigest(),
         "boundary_flags": {
             "starts_lowercase": starts_lowercase(text),
             "ends_incomplete": is_incomplete_end(text),
@@ -395,19 +405,395 @@ def merge_rows(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-def postprocess_rows(rows: list[dict[str, Any]], min_merge_tokens: int, max_merge_tokens: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+# Scientific sentence and table-aware boundary repair helpers.
+#
+# These helpers intentionally live in this single script. They run before generic
+# pruning/scoring so arbitrary Docling/HybridChunker split points do not force
+# useful text to be thrown away or embedded with incomplete boundaries.
+
+SCIENTIFIC_ABBREVIATIONS = {
+    "al.", "approx.", "cf.", "dr.", "e.g.", "eq.", "eqs.", "etc.", "fig.", "figs.",
+    "i.e.", "inc.", "jr.", "ltd.", "mr.", "mrs.", "ms.", "no.", "nos.", "prof.",
+    "ref.", "refs.", "sec.", "secs.", "st.", "vs.", "vol.", "vols.",
+}
+BIOMED_ABBREVIATIONS = {
+    "a.m.", "p.m.", "b.w.", "i.p.", "i.v.", "s.c.", "p.o.", "u.s.", "u.k.",
+}
+SENTENCE_PROTECT_RE = re.compile(
+    r"(?:https?://\S+|www\.\S+|10\.\d{4,9}/\S+|\b(?:e\.g|i\.e|et al|Fig|Figs|Eq|Eqs|Ref|Refs|Sec|Secs|No|Nos|Vol|vs|cf|Dr|Mr|Ms|Mrs|Prof)\.)",
+    re.I,
+)
+DECIMAL_PROTECT_RE = re.compile(r"(?<=\d)\.(?=\d)")
+TABLE_PIPE_ROW_RE = re.compile(r"^\s*\|?.+\|.+\|?\s*$")
+TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)+\|?\s*$")
+CAPTION_START_RE = re.compile(r"^\s*(?:Table|Figure|Fig\.|Scheme|Supplementary\s+(?:Table|Figure|Fig\.))\s*[\w.-]*\s*[:.]", re.I)
+LIST_ITEM_RE = re.compile(r"^\s*(?:[-*•]|\(?[A-Za-z0-9]{1,3}[.)])\s+\S+")
+HEADING_LIKE_RE = re.compile(r"^\s*(?:\d+(?:\.\d+)*\.?\s+)?[A-Z][A-Za-z0-9, /()βγα-]{2,90}$")
+
+
+def _try_pysbd_sentences(text: str) -> list[str] | None:
+    try:
+        import pysbd  # type: ignore
+    except Exception:
+        return None
+    try:
+        segmenter = pysbd.Segmenter(language="en", clean=False)
+        return [s.strip() for s in segmenter.segment(text) if s and s.strip()]
+    except Exception:
+        return None
+
+
+def scientific_sentence_split(text: str) -> list[str]:
+    """Split scientific prose into sentences with conservative abbreviation/URL protection.
+
+    The function uses PySBD when available and falls back to a custom splitter
+    tuned for PDFs containing citations, figures, equations, DOIs, URLs, decimals,
+    units, and common biomedical abbreviations.
+    """
+    text = re.sub(r"\s+", " ", (text or "").strip())
+    if not text:
+        return []
+    lib_result = _try_pysbd_sentences(text)
+    if lib_result and len(" ".join(lib_result)) >= max(1, int(0.9 * len(text))):
+        return lib_result
+
+    protected: dict[str, str] = {}
+
+    def protect(match: re.Match[str]) -> str:
+        key = f"§SENTPROT{len(protected)}§"
+        protected[key] = match.group(0)
+        return key
+
+    tmp = SENTENCE_PROTECT_RE.sub(protect, text)
+    tmp = DECIMAL_PROTECT_RE.sub("§DOT§", tmp)
+
+    # Split only at strong terminal punctuation followed by likely new sentence
+    # starts. This avoids many false splits after abbreviations/citations.
+    parts = re.split(r"(?<=[.!?])\s+(?=(?:[A-Z0-9(\[]|[-*•]\s))", tmp)
+    out: list[str] = []
+    for part in parts:
+        part = part.replace("§DOT§", ".")
+        for key, value in protected.items():
+            part = part.replace(key, value)
+        part = part.strip()
+        if part:
+            out.append(part)
+    return out or [text]
+
+
+def has_unbalanced_delimiters(text: str) -> bool:
+    text = text or ""
+    pairs = [("(", ")"), ("[", "]"), ("{", "}")]
+    for left, right in pairs:
+        if text.count(left) > text.count(right):
+            return True
+    return False
+
+
+def is_probable_markdown_table(text: str) -> bool:
+    lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+    pipe_rows = [ln for ln in lines if TABLE_PIPE_ROW_RE.match(ln) and ln.count("|") >= 2]
+    if len(pipe_rows) >= 2:
+        return True
+    if any(TABLE_SEPARATOR_RE.match(ln) for ln in lines):
+        return True
+    return False
+
+
+def is_probable_aligned_table(text: str) -> bool:
+    lines = [ln.rstrip() for ln in (text or "").splitlines() if ln.strip()]
+    if len(lines) < 3:
+        return False
+    candidate_rows = 0
+    for ln in lines:
+        # Scientific tables often have repeated 2+ space column gaps and numeric cells.
+        if re.search(r"\S\s{2,}\S", ln) and (sum(ch.isdigit() for ch in ln) >= 2 or TABLE_METRIC_RE.search(ln)):
+            candidate_rows += 1
+    return candidate_rows >= 2
+
+
+def is_structured_table_text(text: str) -> bool:
+    if not text or len(text.strip()) < 12:
+        return False
+    f = chunk_features(text) if "chunk_features" in globals() else {}
+    if is_probable_markdown_table(text) or is_probable_aligned_table(text):
+        return True
+    if CAPTION_START_RE.search(text) and (
+        (f and (f.get("numeric_ratio", 0) > 0.08 or f.get("table_metric_count", 0) > 0))
+        or len([ln for ln in text.splitlines() if ln.strip()]) >= 3
+    ):
+        return True
+    return False
+
+
+def normalize_table_block(text: str) -> str:
+    """Preserve and lightly normalize table-like text as markdown-friendly text.
+
+    This does not infer missing cells or reorder data. It only restores pipe
+    edges for obvious markdown table rows and inserts a separator when a header
+    row is apparent but Docling/PDF cleanup omitted the markdown separator.
+    """
+    if not text or not is_structured_table_text(text):
+        return text
+    lines = [ln.rstrip() for ln in text.splitlines()]
+    normalized: list[str] = []
+    pipe_row_indexes: list[int] = []
+
+    for idx, ln in enumerate(lines):
+        stripped = ln.strip()
+        if stripped and TABLE_PIPE_ROW_RE.match(stripped) and stripped.count("|") >= 2:
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            normalized.append("| " + " | ".join(cells) + " |")
+            pipe_row_indexes.append(len(normalized) - 1)
+        else:
+            normalized.append(stripped if stripped else "")
+
+    # If there are multiple pipe rows and no separator, add one after first row.
+    if len(pipe_row_indexes) >= 2 and not any(TABLE_SEPARATOR_RE.match(normalized[i]) for i in pipe_row_indexes):
+        first_idx = pipe_row_indexes[0]
+        ncols = max(2, normalized[first_idx].count("|") - 1)
+        normalized.insert(first_idx + 1, "| " + " | ".join(["---"] * ncols) + " |")
+
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(normalized)).strip()
+
+
+def is_atomic_block(block: str) -> bool:
+    stripped = (block or "").strip()
+    if not stripped:
+        return True
+    if is_structured_table_text(stripped):
+        return True
+    if CAPTION_START_RE.search(stripped) and token_count(stripped) < 120:
+        return True
+    if LIST_ITEM_RE.match(stripped) and "\n" not in stripped and token_count(stripped) < 80:
+        return True
+    return False
+
+
+def semantic_units(text: str) -> list[str]:
+    """Return atomic table/caption/list/sentence units for legal rechunking."""
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text or "") if p.strip()]
+    units: list[str] = []
+    for para in paragraphs:
+        para = normalize_table_block(para)
+        if is_atomic_block(para):
+            units.append(para)
+            continue
+        # Preserve simple headings with the following sentence if possible.
+        lines = [ln.strip() for ln in para.splitlines() if ln.strip()]
+        if len(lines) > 1 and HEADING_LIKE_RE.match(lines[0]) and token_count(lines[0]) <= 12:
+            heading = lines[0]
+            rest = " ".join(lines[1:])
+            sentences = scientific_sentence_split(rest)
+            if sentences:
+                units.append(f"{heading}\n{sentences[0]}")
+                units.extend(sentences[1:])
+            else:
+                units.append(para)
+            continue
+        units.extend(scientific_sentence_split(para))
+    return [u for u in units if u.strip()]
+
+
+def _chunk_number(chunk_id: str) -> tuple[str, int | None]:
+    m = re.match(r"^(.*?_chunk_)(\d+)(?:.*)?$", chunk_id or "")
+    if not m:
+        return (chunk_id or "chunk-", None)
+    return (m.group(1), int(m.group(2)))
+
+
+def repaired_chunk_id(source_ids: list[str], idx: int, total: int) -> str:
+    first = source_ids[0] if source_ids else "chunk-0"
+    prefix, first_no = _chunk_number(first)
+    _, last_no = _chunk_number(source_ids[-1] if source_ids else first)
+    if first_no is None or last_no is None:
+        return first if total == 1 and idx == 0 else f"{first}__repair_{idx + 1}"
+    if total == 1:
+        return f"{prefix}{first_no}" if first_no == last_no else f"{prefix}{first_no}-{last_no}"
+    return f"{prefix}{first_no}-{last_no}-{idx + 1}"
+
+
+def _combine_row_metadata(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    base = dict(rows[0])
+    base["page_numbers"] = _dedupe_sorted(p for row in rows for p in row.get("page_numbers", []))
+    base["headings"] = _dedupe_sorted(h for row in rows for h in row.get("headings", []))
+    base["repair_source_chunk_ids_encoded_in_id"] = [row.get("chunk_id") for row in rows]
+    return base
+
+
+def refresh_row_text(row: dict[str, Any], text: str, chunk_id: str | None = None, repair_status: str | None = None) -> dict[str, Any]:
+    updated = dict(row)
+    updated["chunk_id"] = chunk_id or updated.get("chunk_id")
+    updated["text"] = normalize_table_block(text.strip())
+    updated["content_type"] = classify_content_type(updated["text"], updated.get("headings", []))
+    updated["quality_flags"] = get_quality_flags(updated["text"], updated["content_type"], updated.get("headings", []))
+    updated["rag_fitness_score"] = score_rag_fitness(updated["text"], updated["content_type"], updated["quality_flags"])
+    updated["boundary_flags"] = {
+        "starts_lowercase": starts_lowercase(updated["text"]),
+        "ends_incomplete": is_incomplete_end(updated["text"]),
+        "has_complete_sentence": sentence_count(updated["text"]) > 0 or updated["content_type"] == "table",
+        "unbalanced_delimiters": has_unbalanced_delimiters(updated["text"]),
+    }
+    updated["token_count"] = token_count(updated["text"])
+    updated["sentence_count"] = sentence_count(updated["text"])
+    updated["text_hash"] = hashlib.md5(updated["text"].encode("utf-8")).hexdigest()
+    if repair_status:
+        updated["boundary_repair_status"] = repair_status
+    updated["meta"] = dict(updated.get("meta") or {})
+    updated["meta"].update({
+        "page_numbers": updated.get("page_numbers", []),
+        "headings": updated.get("headings", []),
+        "content_type": updated.get("content_type"),
+    })
+    return updated
+
+
+def rows_are_boundary_compatible(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    if a.get("source_document_id") != b.get("source_document_id"):
+        return False
+    if a.get("content_type") == "reference" or b.get("content_type") == "reference":
+        return False
+    # Do not bridge explicit reference/back-matter section headings.
+    if _in_drop_section(a) or _in_drop_section(b):
+        return False
+    ap = a.get("page_numbers") or []
+    bp = b.get("page_numbers") or []
+    if ap and bp and min(bp) - max(ap) > 1:
+        return False
+    return True
+
+
+def should_join_for_boundary(a: dict[str, Any], b: dict[str, Any], combined_text: str) -> bool:
+    if not rows_are_boundary_compatible(a, b):
+        return False
+    a_text = (a.get("text") or "").strip()
+    b_text = (b.get("text") or "").strip()
+    if not a_text or not b_text:
+        return False
+    if is_structured_table_text(a_text) or is_structured_table_text(b_text):
+        # Keep captions/footnotes adjacent to their table, but do not merge two
+        # unrelated tables merely because they are numeric.
+        if CAPTION_START_RE.search(a_text) or CAPTION_START_RE.search(b_text):
+            return True
+        if re.search(r"^\s*(?:Note|Footnote|Abbreviations?)\b", b_text, re.I):
+            return True
+        return False
+    if is_incomplete_end(combined_text) or has_unbalanced_delimiters(combined_text):
+        return True
+    if starts_lowercase(b_text):
+        return True
+    if re.match(r"^\s*(?:and|or|but|therefore|thereby|whereas|which|that|these|those|this|such|because|however|moreover|furthermore)\b", b_text, re.I):
+        return True
+    return False
+
+
+def rechunk_repaired_run(run_rows: list[dict[str, Any]], max_tokens: int) -> list[dict[str, Any]]:
+    source_ids = [str(r.get("chunk_id")) for r in run_rows]
+    combined = _combine_row_metadata(run_rows)
+    combined_text = "\n\n".join((r.get("text") or "").strip() for r in run_rows if (r.get("text") or "").strip())
+    combined_text = normalize_table_block(combined_text)
+
+    units = semantic_units(combined_text)
+    if not units:
+        return [refresh_row_text(combined, combined_text, repaired_chunk_id(source_ids, 0, 1), "boundary_repair_no_units")]
+
+    chunks: list[str] = []
+    current = ""
+    for unit in units:
+        sep = "\n\n" if ("\n" in unit or is_structured_table_text(unit) or CAPTION_START_RE.search(unit)) else " "
+        candidate = (current + sep + unit).strip() if current else unit
+        if current and token_count(candidate) > max_tokens and not is_incomplete_end(current):
+            chunks.append(current.strip())
+            current = unit
+        else:
+            current = candidate
+    if current.strip():
+        chunks.append(current.strip())
+
+    # If splitting created a dangling lowercase continuation, attach it backward
+    # where possible rather than emitting a known bad boundary.
+    repaired_chunks: list[str] = []
+    for chunk in chunks:
+        if repaired_chunks and starts_lowercase(chunk) and token_count(repaired_chunks[-1] + " " + chunk) <= max_tokens:
+            repaired_chunks[-1] = (repaired_chunks[-1].rstrip() + " " + chunk.lstrip()).strip()
+        else:
+            repaired_chunks.append(chunk)
+    chunks = repaired_chunks
+
+    out: list[dict[str, Any]] = []
+    total = len(chunks)
+    for idx, chunk_text in enumerate(chunks):
+        out.append(refresh_row_text(
+            combined,
+            chunk_text,
+            repaired_chunk_id(source_ids, idx, total),
+            "semantic_boundary_repair" if len(run_rows) > 1 or total != len(run_rows) else "boundary_stable",
+        ))
+    return out
+
+
+def semantic_boundary_repair_rows(rows: list[dict[str, Any]], max_tokens: int) -> list[dict[str, Any]]:
+    """Repair sentence/paragraph/caption/table boundaries before pruning.
+
+    This pass treats original chunks as arbitrary split points. It merges only
+    adjacent compatible rows, then re-splits at scientific sentence/table-aware
+    atomic boundaries with deterministic repaired IDs.
+    """
+    repaired: list[dict[str, Any]] = []
+    i = 0
+    boundary_buffer_limit = max(max_tokens * 3, max_tokens + 200)
+    while i < len(rows):
+        run = [refresh_row_text(rows[i], normalize_table_block(rows[i].get("text") or ""))]
+        combined_text = run[0].get("text") or ""
+        j = i + 1
+        while j < len(rows) and token_count(combined_text) <= boundary_buffer_limit:
+            nxt = refresh_row_text(rows[j], normalize_table_block(rows[j].get("text") or ""))
+            if not should_join_for_boundary(run[-1], nxt, combined_text):
+                break
+            run.append(nxt)
+            combined_text = "\n\n".join((r.get("text") or "").strip() for r in run if (r.get("text") or "").strip())
+            j += 1
+            if not is_incomplete_end(combined_text) and not has_unbalanced_delimiters(combined_text):
+                # Stop as soon as the repaired span reaches a legal boundary.
+                break
+        if len(run) == 1:
+            repaired.append(run[0])
+        else:
+            repaired.extend(rechunk_repaired_run(run, max_tokens=max_tokens))
+        i = j
+    return repaired
+
+
+def postprocess_rows(
+    rows: list[dict[str, Any]],
+    min_merge_tokens: int,
+    max_merge_tokens: int,
+    enable_boundary_repair: bool = True,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    # Normalize table-like blocks and repair sentence/semantic boundaries before
+    # applying generic pruning. Original chunk boundaries are arbitrary split
+    # points; output IDs encode local merge/split repair where applicable.
+    prepared = [refresh_row_text(row, normalize_table_block(row.get("text") or "")) for row in rows]
+    if enable_boundary_repair:
+        prepared = semantic_boundary_repair_rows(prepared, max_tokens=max_merge_tokens)
+
+    # Retain the old short-neighbor merge as a conservative fallback for short,
+    # boundary-stable prose. Do not require score improvement when the original
+    # row has an incomplete ending; repair quality outranks shallow score deltas.
     merged: list[dict[str, Any]] = []
     i = 0
-    while i < len(rows):
-        row = rows[i]
+    while i < len(prepared):
+        row = prepared[i]
         should_try_merge = (
-            (row.get("token_count", 0) < min_merge_tokens or row.get("boundary_flags", {}).get("ends_incomplete"))
-            and i + 1 < len(rows)
-            and row.get("content_type") not in {"reference"}
+            row.get("token_count", 0) < min_merge_tokens
+            and i + 1 < len(prepared)
+            and row.get("content_type") not in {"reference", "table"}
+            and rows_are_boundary_compatible(row, prepared[i + 1])
         )
         if should_try_merge:
-            candidate = merge_rows(row, rows[i + 1])
-            if candidate.get("token_count", 0) <= max_merge_tokens and candidate.get("rag_fitness_score", 0) >= row.get("rag_fitness_score", 0):
+            candidate = merge_rows(row, prepared[i + 1])
+            candidate = refresh_row_text(candidate, candidate.get("text") or "", candidate.get("chunk_id"), "short_neighbor_merge")
+            if candidate.get("token_count", 0) <= max_merge_tokens:
                 merged.append(candidate)
                 i += 2
                 continue
@@ -417,6 +803,7 @@ def postprocess_rows(rows: list[dict[str, Any]], min_merge_tokens: int, max_merg
     kept: list[dict[str, Any]] = []
     quarantined: list[dict[str, Any]] = []
     for row in merged:
+        row = refresh_row_text(row, row.get("text") or "")
         reason = drop_reason(row)
         if reason is None:
             kept.append(row)
@@ -517,7 +904,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-crossref", action="store_true", help="Disable Crossref metadata lookup.")
     parser.add_argument("--crossref-mailto", default=None, help="Optional email for polite Crossref requests.")
     parser.add_argument("--min-merge-tokens", type=int, default=80, help="Chunks below this may merge with neighbors.")
-    parser.add_argument("--max-merge-tokens", type=int, default=340, help="Maximum merged chunk token count.")
+    parser.add_argument("--max-merge-tokens", type=int, default=340, help="Maximum merged/rechunked token count.")
+    parser.add_argument("--disable-boundary-repair", action="store_true", help="Disable semantic sentence/table boundary repair before pruning.")
     parser.add_argument("--limit", type=int, default=None, help="Optional max PDFs to process.")
     return parser.parse_args()
 
@@ -598,10 +986,11 @@ def run_pipeline(args: argparse.Namespace):
                         major_change_report=major_change_report,
                         report_context={"document_name": pdf_path.name, "page_numbers": page_numbers, "headings": headings, "pipeline_id": PIPELINE_ID, "ingestion_strategy": source_info.get("ingestion_strategy")},
                     )
+                    cleaned = normalize_table_block(cleaned)
                     row = make_row(pdf_path=pdf_path, chunk=chunk, chunk_id=chunk_id, text=cleaned, doi=doi, document_metadata=document_metadata, source_info=source_info)
                     candidate_rows.append(row)
 
-                kept_rows, quarantine_rows = postprocess_rows(candidate_rows, min_merge_tokens=args.min_merge_tokens, max_merge_tokens=args.max_merge_tokens)
+                kept_rows, quarantine_rows = postprocess_rows(candidate_rows, min_merge_tokens=args.min_merge_tokens, max_merge_tokens=args.max_merge_tokens, enable_boundary_repair=not args.disable_boundary_repair)
 
                 for row in kept_rows:
                     kept_out.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -658,11 +1047,6 @@ def run_pipeline(args: argparse.Namespace):
             json.dumps(log_record, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-
-if __name__ == "__main__":
-    args = parse_args()
-    run(args)
-
 
 ######
 ### chunk_tosser
@@ -834,11 +1218,16 @@ def _looks_boilerplate(text: str, f: Mapping[str, Any]) -> bool:
 
 
 def _looks_table_debris(text: str, f: Mapping[str, Any]) -> bool:
+    # Structured tables are evidence-bearing RAG material even when they have no
+    # complete prose sentence. Only orphaned or unrecoverably fragmented table
+    # remnants should be pruned as table debris.
+    if "is_structured_table_text" in globals() and is_structured_table_text(text):
+        return False
     if f["sentence_count"] >= 3 and f["science_term_count"] >= 2:
         return False
     if f["pipe_count"] >= 2 and f["sentence_count"] < 3:
         return True
-    if f["kv_count"] >= 4 and f["sentence_count"] < 3:
+    if f["kv_count"] >= 4 and f["sentence_count"] < 3 and f["science_term_count"] == 0:
         return True
     if f["caption_like"] and f["short_line_ratio"] > 0.65 and (f["numeric_ratio"] > 0.10 or f["upper_ratio"] > 0.12):
         return True
@@ -860,6 +1249,8 @@ def drop_reason(record: Any) -> str | None:
     compact_scientific = _compact_scientific(f)
     definition_like = f.get("formal_definition_count", 0) >= 1 and f["token_count"] >= 15 and f["alpha_ratio"] >= 0.55
 
+    if "is_structured_table_text" in globals() and is_structured_table_text(text):
+        return None
     if f["token_count"] < 12:
         return "too_short"
     if f["token_count"] < 20 and not compact_scientific and not definition_like:
@@ -929,49 +1320,48 @@ FIGURE_SPACED_RE = re.compile(r"\b[fF]\s*[iI]\s*[gG]\s*[uU]\s*[rR]\s*[eE]\b")
 TABLE_SPACED_RE = re.compile(r"\b[tT]\s*[aA]\s*[bB]\s*[lL]\s*[eE]\b")
 REFERENCE_SPACED_RE = re.compile(r"\b[rR]\s*[eE]\s*[fF]\s*[eE]\s*[rR]\s*[eE]\s*[nN]\s*[cC]\s*[eE]\s*[sS]\b")
 PIPE_EDGE_RE = re.compile(r"(?m)^\s*\|\s*|\s*\|\s*$")
-DANGLING_PAGE_RE = re.compile(r"(?m)^\s*\d{1,4}\s*$")
-REPEATED_PUNCT_RE = re.compile(r"([,.;:!?])\1{2,}")
-LONG_TOKEN_RE = re.compile(r"\b[^\s]{90,}\b")
-
-# DOI suffixes are intentionally bounded. 
-# Broad DOI regexes often swallow article titles, licenses, or following prose after aggressive PDF line-joining.
-DOI_CANDIDATE_RE = re.compile(
-    r"(?:https?://(?:dx\.)?doi\.org/|doi\s*[:：]\s*)?"
-    r"(10\.\d{4,9}\s*/\s*[-._;()/:A-Z0-9]+)",
-    re.I,
-)
-DOI_STOPWORD_RE = re.compile(
-    r"(?i)(?:abstract|introduction|keywords?|received|accepted|published|copyright|"
-    r"creativecommons|license|thisarticle|availableonline|contentslists|journalhomepage)$"
-)
+DANGLING_PAGE_RE = re.compile(r"(?m)^\s*(?:Page\s*)?\d{1,4}\s*$")
+REPEATED_PUNCT_RE = re.compile(r"([,.;:!?]){3,}")
 
 UNICODE_REPLACEMENTS = {
-    "\u00a0": " ", "\u1680": " ", "\u2000": " ", "\u2001": " ", "\u2002": " ",
-    "\u2003": " ", "\u2004": " ", "\u2005": " ", "\u2006": " ", "\u2007": " ",
-    "\u2008": " ", "\u2009": " ", "\u200a": " ", "\u202f": " ", "\u205f": " ",
-    "\u3000": " ", "\u00ad": "", "\u2010": "-", "\u2011": "-", "\u2012": "-",
-    "\u2013": "-", "\u2014": "-", "\u2015": "-", "\u2212": "-", "\u2018": "'",
-    "\u2019": "'", "\u201a": "'", "\u201b": "'", "\u201c": '"', "\u201d": '"',
-    "\u201e": '"', "\u201f": '"', "\u2026": "...", "\ufb00": "ff", "\ufb01": "fi",
-    "\ufb02": "fl", "\ufb03": "ffi", "\ufb04": "ffl", "\ufb05": "st", "\ufb06": "st",
+    "\u00ad": "",
+    "\u2212": "-",
+    "\u2010": "-",
+    "\u2011": "-",
+    "\u2012": "-",
+    "\u2013": "-",
+    "\u2014": "-",
+    "\u2018": "'",
+    "\u2019": "'",
+    "\u201c": '"',
+    "\u201d": '"',
+    "\u00a0": " ",
+    "\uf0b7": "•",
 }
 
 MOJIBAKE_REPLACEMENTS = {
-    "â€™": "'", "â€˜": "'", "â€œ": '"', "â€": '"', "â€\u009d": '"',
-    "â€“": "-", "â€”": "-", "â€¦": "...", "Â ": " ", "Â": "",
-    "Ã—": "×", "Ã÷": "÷", "Î¼": "μ", "Î±": "α", "Î²": "β", "Î³": "γ",
-    "Î´": "δ", "Îº": "κ", "Î»": "λ", "Ïƒ": "σ", "Ï„": "τ",
+    "â€“": "-",
+    "â€”": "-",
+    "â€˜": "'",
+    "â€™": "'",
+    "â€œ": '"',
+    "â€\x9d": '"',
+    "Â ": " ",
+    "ï¬\x81": "fi",
+    "ï¬\x82": "fl",
 }
 
 
 def _safe_len(text: str) -> int:
-    return max(len(text), 1)
+    return max(len(text or ""), 1)
 
 
 def _change_ratio(before: str, after: str) -> float:
-    if not before:
-        return 0.0 if not after else 1.0
-    return abs(len(before) - len(after)) / float(_safe_len(before))
+    before_len = _safe_len(before)
+    after_len = len(after or "")
+    length_delta = abs(before_len - after_len) / before_len
+    similarity = difflib.SequenceMatcher(a=before or "", b=after or "").ratio()
+    return max(length_delta, 1.0 - similarity)
 
 
 def _replace_many(text: str, replacements: dict[str, str]) -> str:
@@ -982,78 +1372,57 @@ def _replace_many(text: str, replacements: dict[str, str]) -> str:
 
 def _clean_lines(text: str) -> str:
     lines = []
-    for line in text.splitlines():
-        line = line.strip()
-        line = MULTISPACE_RE.sub(" ", line)
-        if line:
-            lines.append(line)
+    for raw in text.split("\n"):
+        line = MULTISPACE_RE.sub(" ", raw).strip()
+        if not line:
+            lines.append("")
+            continue
+        lines.append(line)
     return "\n".join(lines)
 
 
-def normalize_doi_candidate(text: Optional[str]) -> Optional[str]:
-    """Return a valid DOI or None.
+def normalize_doi_candidate(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    value = html.unescape(str(value)).strip().rstrip(".,;)\"]")
+    value = DOI_URL_RE.sub("", value)
+    value = re.sub(r"^doi\s*[:：]\s*", "", value, flags=re.I)
+    value = re.sub(r"\s+", "", value)
+    match = DOI_PATTERN.search(value)
+    if not match:
+        return None
+    doi = match.group(0).rstrip(".,;)\"]")
+    return doi.lower()
 
-    This trims punctuation and common prose swallowed by PDF line joining. It is
-    conservative: doubtful candidates are rejected instead of being sent to
-    metadata services.
-    """
+
+def extract_dois(text: str) -> list[str]:
     if not text:
-        return None
-    candidate = html.unescape(str(text)).strip()
-    candidate = re.sub(r"^(?:https?://(?:dx\.)?doi\.org/|doi\s*[:：]\s*)", "", candidate, flags=re.I)
-    candidate = re.sub(r"\s*/\s*", "/", candidate)
-    candidate = re.sub(r"\s+", "", candidate)
-    candidate = candidate.rstrip(".,;:)]}>}\"'")
-    # DOI suffixes do not contain whitespace, but broad extraction may append words. 
-    # Iteratively trim at low-confidence separators.
-    for sep in ("|", "<", ">", "#"):
-        candidate = candidate.split(sep, 1)[0]
-    candidate = re.sub(r"(?i)(?:abstract|keywords?|introduction|received|accepted|published).*$", "", candidate)
-    while DOI_STOPWORD_RE.search(candidate):
-        candidate = re.sub(r"(?i)(abstract|keywords?|introduction|received|accepted|published|copyright|creativecommons|license|thisarticle|availableonline|contentslists|journalhomepage)$", "", candidate)
-        candidate = candidate.rstrip(".,;:)]}>}\"'")
-    if not re.fullmatch(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", candidate, flags=re.I):
-        return None
-    if len(candidate) > 160:  # almost always a swallowed-title artifact
-        return None
-    return candidate
-
-
-def extract_dois(text: str, limit: int = 5) -> list[str]:
-    """Extract normalized DOI candidates from text in first-seen order."""
-    found = []
-    for match in DOI_CANDIDATE_RE.finditer(text or ""):
-        doi = normalize_doi_candidate(match.group(1))
-        if doi and doi.lower() not in {x.lower() for x in found}:
-            found.append(doi)
-            if len(found) >= limit:
-                break
-    return found
+        return []
+    fixed = _normalize_broken_doi_and_url(text)
+    values = []
+    for match in DOI_PATTERN.finditer(fixed):
+        doi = normalize_doi_candidate(match.group(0))
+        if doi and doi not in values:
+            values.append(doi)
+    return values
 
 
 def _normalize_broken_doi_and_url(text: str) -> str:
-    text = DOI_LABEL_SPACE_RE.sub(r"doi:\1/\2", text)
-    text = DOI_SPACE_RE.sub(r"\1/\2", text)
-    text = DOI_URL_RE.sub("doi:", text)
-    text = URL_LINEBREAK_RE.sub(r"\1", text)
-    text = URL_SPACE_RE.sub(r"\1", text)
-    # Only remove internal DOI spaces when the resulting candidate validates.
-    def _repair(match: re.Match) -> str:
-        joined = match.group(1) + match.group(2)
-        return joined if normalize_doi_candidate(joined) else match.group(0)
-    text = re.sub(r"\b(10\.\d{4,9}/[^\s,;]+)\s+([A-Za-z0-9._;()/:+-]+)", _repair, text)
+    text = DOI_LABEL_SPACE_RE.sub(lambda m: f"doi:{m.group(1)}/{m.group(2)}", text)
+    text = DOI_SPACE_RE.sub(lambda m: f"{m.group(1)}/{m.group(2)}", text)
+    text = URL_LINEBREAK_RE.sub(lambda m: m.group(1), text)
+    text = URL_SPACE_RE.sub(lambda m: m.group(1), text)
+    text = DOI_URL_RE.sub("https://doi.org/", text)
     return text
 
 
-def _unified_diff(before: str, after: str, chunk_id: Optional[str] = None, context_lines: int = 3) -> str:
-    fromfile = f"{chunk_id}:original" if chunk_id else "original"
-    tofile = f"{chunk_id}:cleaned" if chunk_id else "cleaned"
-    return "".join(
+def _unified_diff(before: str, after: str, context_lines: int = 3) -> str:
+    return "\n".join(
         difflib.unified_diff(
-            before.splitlines(keepends=True),
-            after.splitlines(keepends=True),
-            fromfile=fromfile,
-            tofile=tofile,
+            before.splitlines(),
+            after.splitlines(),
+            fromfile="before",
+            tofile="after",
             lineterm="",
             n=context_lines,
         )
@@ -1061,56 +1430,45 @@ def _unified_diff(before: str, after: str, chunk_id: Optional[str] = None, conte
 
 
 def _append_major_change(
-    report,
+    report: Optional[dict[str, Any]],
     *,
-    chunk_id,
-    before,
-    after,
-    change_ratio,
-    warn_threshold,
-    context=None,
-    diff_context_lines=3,
-    max_text_chars=12000,
-):
+    chunk_id: Optional[str],
+    before: str,
+    after: str,
+    change_ratio: float,
+    warn_threshold: float,
+    context: Optional[dict[str, Any]] = None,
+    diff_context_lines: int = 3,
+    max_text_chars: int = 12000,
+) -> None:
     if report is None:
         return
-    normalized_chunk_id = chunk_id or "__unknown_chunk__"
-    before_excerpt = before[:max_text_chars]
-    after_excerpt = after[:max_text_chars]
-    record = {
-        "chunk_id": normalized_chunk_id,
+    key = chunk_id or f"unknown_{len(report) + 1}"
+    before_trimmed = before[:max_text_chars]
+    after_trimmed = after[:max_text_chars]
+    report[key] = {
+        "chunk_id": chunk_id,
         "change_ratio": round(change_ratio, 6),
         "warn_threshold": warn_threshold,
-        "original_length": len(before),
-        "cleaned_length": len(after),
-        "length_delta": len(after) - len(before),
-        "possible_over_pruning": len(after) < len(before) and change_ratio >= warn_threshold,
-        "diff": _unified_diff(before_excerpt, after_excerpt, chunk_id=normalized_chunk_id, context_lines=diff_context_lines),
+        "context": context or {},
+        "before_char_count": len(before),
+        "after_char_count": len(after),
+        "before_truncated": len(before) > max_text_chars,
+        "after_truncated": len(after) > max_text_chars,
+        "before_excerpt": before_trimmed,
+        "after_excerpt": after_trimmed,
+        "diff": _unified_diff(before_trimmed, after_trimmed, context_lines=diff_context_lines),
     }
-    if context:
-        record["context"] = context
-    if len(before) > max_text_chars or len(after) > max_text_chars:
-        record["diff_truncated"] = True
-        record["max_text_chars"] = max_text_chars
-    if isinstance(report, dict):
-        report[normalized_chunk_id] = record
-    elif hasattr(report, "append"):
-        report.append(record)
-    else:
-        raise TypeError("major_change_report must be a dict, list, or list-like object with append().")
 
 
-def write_major_change_report(report, path, *, as_json=True) -> int:
-    path = Path(path)
+def write_major_change_report(report: dict[str, Any], output_path: str | Path, *, as_jsonl: bool = False) -> int:
+    path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    if isinstance(report, dict):
-        records_by_id = report
-    else:
-        records_by_id = {record.get("chunk_id", f"chunk_{i}"): record for i, record in enumerate(report or [])}
-    if as_json:
+    records_by_id = dict(sorted(report.items(), key=lambda kv: kv[0]))
+    if not as_jsonl:
         payload = {
             "created_at": datetime.now(timezone.utc).isoformat(),
-            "entry_count": len(records_by_id),
+            "record_count": len(records_by_id),
             "chunks": records_by_id,
         }
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1162,7 +1520,8 @@ def clean_good_chunk(
     cleaned = TABLE_SPACED_RE.sub("Table", cleaned)
     cleaned = REFERENCE_SPACED_RE.sub("References", cleaned)
 
-    cleaned = PIPE_EDGE_RE.sub("", cleaned)
+    if not is_structured_table_text(cleaned):
+        cleaned = PIPE_EDGE_RE.sub("", cleaned)
     cleaned = DANGLING_PAGE_RE.sub("", cleaned)
     cleaned = _clean_lines(cleaned)
     cleaned = re.sub(r"\s+([,.;:!?%)\]])", r"\1", cleaned)
@@ -1192,3 +1551,7 @@ def clean_good_chunk(
             stacklevel=2,
         )
     return cleaned
+
+if __name__ == "__main__":
+    args = parse_args()
+    run_pipeline(args)
