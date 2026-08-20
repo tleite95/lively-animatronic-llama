@@ -1,2 +1,2 @@
-artifacts: "/Users/tleite95/Research/Beck Research Lab/lively-animatronic-llama/artifacts/workflows/rag-ingest"
-pdfs: "/Users/tleite95/Research/Beck Research Lab/OPUS/initial-wiki-ingest"
+artifacts: ".../artifacts/workflows/rag-ingest"
+pdfs: ".../initial-wiki-ingest"

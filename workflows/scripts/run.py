@@ -17,7 +17,7 @@ def run_prompt(prompt: str, agent: str, skill: str | None = None, model: str = "
         "variant": None,
         "prompt": prompt,
         "title": run_id,
-        "timeout": 600.0,
+        "timeout": 3600.0,
         "quiet": False,
         "log_file": None,
     }
@@ -40,6 +40,7 @@ def run_ingest(pdf_folder: str, manifest: any):
         "crossref_mailto": None,
         "min_merge_tokens": 80,
         "max_merge_tokens": 340,
+        "disable_boundary_repair": False,
         "limit": None,
     }
     

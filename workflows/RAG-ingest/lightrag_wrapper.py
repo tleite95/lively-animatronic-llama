@@ -40,7 +40,7 @@ async def llm_model_func(
     keyword_extraction=False,
     **kwargs,
 ) -> str:
-    run_prompt(prompt, "plan")
+    run_prompt(prompt, "Plan")
 
 
 async def embedding_func(texts: list[str]):
