@@ -1,6 +1,9 @@
 from pathlib import Path
 import shutil
 import json
+import asyncio
+
+from lightrag_wrapper import get_lightrag, cleanup_lightrag
 
 from state import RAGIngestionState
 
@@ -199,11 +202,15 @@ def wiki_verify(state: RAGIngestionState):
     response = run_prompt(prompt, agent="wiki-agent", skill="wiki-verify", run_id=state["run_id"])
     state["summaries"]["wiki"].append(response)
 
-
 def prepare_lightrag(state: RAGIngestionState):
-    # append citation metadata to text
-    print("WARNING: lightrag branch is a stub")
+    print("WARNING: lightrag preparation is a stub, just passing full text + YAML frontmatter")
 
 def insert_into_lightrag(state: RAGIngestionState):
-    # async bulk import of text chunks
-    print("WARNING: lightrag branch is a stub")
+    asyncio.run(ainsert_into_lightrag(state))
+   
+async def ainsert_into_lightrag(state, RAGIngestionState):
+    with open(state["manifest"]["full_text"]) as full_text_file:
+        full_text = full_text_file.read()
+        rag = await get_lightrag()
+        await rag.ainsert(full_text)
+    

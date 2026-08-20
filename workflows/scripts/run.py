@@ -6,7 +6,7 @@ import scripts.ingest as ingest
 
 def run_prompt(prompt: str, agent: str, skill: str | None = None, model: str = "devstral-small", run_id: str | None = None):
     args = {
-        "base_url": "http://127.0.0.1:4096",
+        "base_url": "http://127.0.0.1:4096", # URL of opencode server, not LLM
         "username": "opencode",
         "password": "alpine",
         "directory": os.getcwd(),

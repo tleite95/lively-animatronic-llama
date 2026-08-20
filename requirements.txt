@@ -3,3 +3,4 @@ pydantic
 requests
 docling
 langgraph
+lightrag-hku[api]

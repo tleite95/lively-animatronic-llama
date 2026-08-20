@@ -909,6 +909,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=None, help="Optional max PDFs to process.")
     return parser.parse_args()
 
+def append_text(path: Path, text: str):
+    with path.open("a", encoding="utf-8") as file:
+        file.write(text)
+
 def run_pipeline(args: argparse.Namespace):
     pdf_folder = Path(args.pdf_folder)
     md_folder = Path(args.md_folder)
@@ -972,7 +976,22 @@ def run_pipeline(args: argparse.Namespace):
                 doi = normalize_doi_candidate(dois[0]) if dois else None
 
                 document_metadata = {} if args.no_crossref else lookup_crossref_metadata(doi, mailto=args.crossref_mailto)
-                (md_folder / f"{pdf_path.stem}.md").write_text(doc_text, encoding="utf-8")
+                def get_authors():
+                    authors = document_metadata.get("meta", {}).get("document_metadata", {}).get("author", [])
+                    return [" ".join(filter(None, [a.get("given"), a.get("family")])) for a in authors]
+                
+                output_front_matter = (
+                    "---\n"
+                    f"Title: {document_metadata.get("title", "")}\n"
+                    f"DOI: {doi}\n"
+                    f"Authors: {get_authors()}\n"
+                    f"Published On: {"-".join(document_metadata.get("issued", {}).get("date_parts", [[]])[0])}\n"
+                    f"Journal: {document_metadata.get("container_title", "")}\n"
+                    "---\n"
+                )
+
+                (md_folder / f"{pdf_path.stem}.md").write_text(output_front_matter)
+                append_text((md_folder / f"{pdf_path.stem}.md"), doc_text)
 
                 candidate_rows = []
                 for i, chunk in enumerate(chunks):
@@ -997,7 +1016,8 @@ def run_pipeline(args: argparse.Namespace):
                 for row in quarantine_rows:
                     quarantine_out.write(json.dumps(row, ensure_ascii=False) + "\n")
 
-                (txt_folder / f"{pdf_path.stem}.txt").write_text("\n\n".join(row["text"] for row in kept_rows), encoding="utf-8")
+                (txt_folder / f"{pdf_path.stem}.txt").write_text(output_front_matter)
+                append_text((txt_folder / f"{pdf_path.stem}.txt"), ("\n\n".join(row["text"] for row in kept_rows)))
                 update_qa(qa, pdf_name=pdf_path.name, original=original_n_chunks, kept=kept_rows, quarantine=quarantine_rows, source_info=source_info)
                 message = f"kept={len(kept_rows)} quarantined={len(quarantine_rows)} original={original_n_chunks}"
                 print(f"  {message}")
