@@ -15,58 +15,66 @@ def init(state: RAGIngestionState):
     # Load config
     artifact_dir = Path(state["config"]["artifacts"])
 
+    state_updates = {}
+
     # Create necessary artifact directories, add all paths to run manifest
     n_runs = sum(1 for item in (artifact_dir / "runs").iterdir() if item.is_dir())
     run_id = f"{n_runs}_{utc_now()}"
-    state["run_id"] = run_id
+    state_updates["run_id"] = run_id
+
+    state_updates["manifest"] = {**state["manifest"]}
 
     run_dir = artifact_dir / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
-    state["manifest"]["run_dir"] = str(run_dir.resolve())
+    state_updates["manifest"]["run_dir"] = str(run_dir.resolve())
 
     jsonl_processed_path = (run_dir / "ingestion_stream.jsonl")
-    state["manifest"]["processed_jsonl"] = str(jsonl_processed_path.resolve())
+    state_updates["manifest"]["processed_jsonl"] = str(jsonl_processed_path.resolve())
     
     jsonl_final_path = (run_dir / "RAG_stream.jsonl")
-    state["manifest"]["final_jsonl"] = str(jsonl_final_path.resolve())
+    state_updates["manifest"]["final_jsonl"] = str(jsonl_final_path.resolve())
 
     jsonl_quarantine_path = (run_dir / "quarantine_stream.jsonl")
-    state["manifest"]["quarantined_jsonl"] = str(jsonl_quarantine_path.resolve())
+    state_updates["manifest"]["quarantined_jsonl"] = str(jsonl_quarantine_path.resolve())
 
     jsonl_raw_path = (run_dir / "raw_stream.jsonl")
-    state["manifest"]["raw_jsonl"] = str(jsonl_raw_path.resolve())
+    state_updates["manifest"]["raw_jsonl"] = str(jsonl_raw_path.resolve())
 
     md_path = (run_dir / "md")
     md_path.mkdir(parents=True, exist_ok=True)
-    state["manifest"]["md_dir"] = str(md_path.resolve())
+    state_updates["manifest"]["md_dir"] = str(md_path.resolve())
 
     txt_path = (run_dir / "txt")
     txt_path.mkdir(parents=True, exist_ok=True)
-    state["manifest"]["txt_dir"] = str(txt_path.resolve())
+    state_updates["manifest"]["txt_dir"] = str(txt_path.resolve())
 
     log_path = (run_dir / "logs")
     log_path.mkdir(parents=True, exist_ok=True)
-    state["manifest"]["log_folder"] = str(log_path.resolve())
+    state_updates["manifest"]["log_folder"] = str(log_path.resolve())
 
     report_path = (run_dir / "reports")
     report_path.mkdir(parents=True, exist_ok=True)
-    state["manifest"]["report_folder"] = str(report_path.resolve())
+    state_updates["manifest"]["report_folder"] = str(report_path.resolve())
 
     qa_report_path = report_path / "ingestion_qa_report.json"
-    state["manifest"]["qa_report"] = str(qa_report_path.resolve())
+    state_updates["manifest"]["qa_report"] = str(qa_report_path.resolve())
 
     major_change_report_path = report_path / "major_change_report.json"
-    state["manifest"]["major_change_report"] = str(major_change_report_path.resolve())
+    state_updates["manifest"]["major_change_report"] = str(major_change_report_path.resolve())
 
     preparation_report_path = report_path / "preparation_report.json"
-    state["manifest"]["preparation_report"] = str(preparation_report_path.resolve())
+    state_updates["manifest"]["preparation_report"] = str(preparation_report_path.resolve())
+    return state_updates
     
 
 def pdf2jsonl(state: RAGIngestionState):
     run_ingest(state["config"]["pdfs"], state["manifest"])
 
 def reset(state: RAGIngestionState):
-    state["try_number"] += 1
+    state_updates = {
+        "try_number": state["try_number"]
+    }
+    state_updates["try_number"] += 1
 
     # Delete most recent artifact files, maintain directory structure
     dirs = [
@@ -94,6 +102,8 @@ def reset(state: RAGIngestionState):
     for file in files:
         if file.is_file():
             file.unlink()
+
+    return state_updates
 
 def fail_jsonl_verification(state: RAGIngestionState):
     shutil.rmtree(state["manifest"]["run_dir"], ignore_errors=True)
@@ -133,12 +143,16 @@ def ragchunk_verify(state: RAGIngestionState):
 def branch_lightrag_wiki(state: RAGIngestionState):
     doc_queue = set()
 
+    state_updates = {}
+
     with open(state["manifest"]["final_jsonl"], "r") as ingestion_stream:
         for line in ingestion_stream:
             doc_queue.add(json.loads(line.strip())["source_document_name"])
 
-    state["wiki_doc_queue"] = list(doc_queue)
-    state["lightrag_doc_queue"] = list(doc_queue)
+    state_updates["wiki_doc_queue"] = list(doc_queue)
+    state_updates["lightrag_doc_queue"] = list(doc_queue)
+
+    return state_updates
 
 def empty(state: RAGIngestionState):
     pass
@@ -153,32 +167,40 @@ def batch_chunks_by_document__wiki(state: RAGIngestionState):
 def _batch_chunks_by_document(state: RAGIngestionState, branch: str):
     doc_q = f"{branch}_doc_queue"
     cur_doc = f"current_{branch}_doc"
-
-    doc_name = state[doc_q].pop(0)
+     
+    state_updates = {
+        doc_q: state[doc_q].copy(),
+        "manifest": {},
+    }
+        
+    doc_name = state_updates[doc_q].pop(0)
 
     chunks = []
     with open(state["manifest"]["final_jsonl"], "r") as ingestion_stream:
         for line in ingestion_stream:
             record = json.loads(line.strip())
             if record["source_document_name"] == doc_name:
-                chunks.append(record)
-    state[cur_doc] = chunks
+                chunks.append(line)
+    state_updates[cur_doc] = chunks
 
-    full_text_file = Path(state["manifest"]["md_folder"]) / f"{Path(doc_name).stem}.md"
-    if not full_text_file.exists():
-        full_text_file = Path(state["manifest"]["txt_folder"]) / f"{Path(doc_name).stem}.txt"
-    if full_text_file.exists():
-        full_text_file = full_text_file.resolve()
-    else:
-        full_text_file = None
-    state["manifest"]["full_text"] = full_text_file
+    if branch == "lightrag":
+        full_text_file = Path(state["manifest"]["md_dir"]) / f"{Path(doc_name).stem}.md"
+        if not full_text_file.exists():
+            full_text_file = Path(state["manifest"]["txt_dir"]) / f"{Path(doc_name).stem}.txt"
+        if full_text_file.exists():
+            full_text_file = full_text_file.resolve()
+        else:
+            full_text_file = None
+        state_updates["manifest"]["full_text"] = full_text_file
+
+    return state_updates
 
 def wiki_ingest(state: RAGIngestionState):
     doc_stream = "\n".join(state["current_wiki_doc"])
 
     prompt = f"Prepare the following JSONL stream for ingestion into the wiki: \n\n{doc_stream}"
-    response = run_prompt(prompt, agent="wiki-agent", skill="wiki-ingest", run_id=state["run_id"])
-    state["wiki_ingest_output"] = response
+    response = run_prompt(prompt, agent="wiki-expert", skill="wiki-ingest", run_id=state["run_id"])
+    return {"wiki_ingest_output": response}
 
 def wiki_write(state: RAGIngestionState):
     report = state["wiki_ingest_output"]
@@ -188,8 +210,8 @@ def wiki_write(state: RAGIngestionState):
         "Create new pages only as needed. "
         f"Here is the ingestion report:\n\n{report}"
     )
-    response = run_prompt(prompt, agent="wiki-agent", skill="wiki-write", run_id=state["run_id"])
-    state["wiki_write_output"] = response
+    response = run_prompt(prompt, agent="wiki-expert", skill="wiki-write", run_id=state["run_id"])
+    return {"wiki_write_output": response}
 
 def wiki_verify(state: RAGIngestionState):
     report = state["wiki_write_output"]
@@ -199,8 +221,10 @@ def wiki_verify(state: RAGIngestionState):
         "Make sure you check for contradictions across the affected pages as well as the wiki as a whole. "
         f"Here is the insertion report:\n\n{report}"
     )
-    response = run_prompt(prompt, agent="wiki-agent", skill="wiki-verify", run_id=state["run_id"])
-    state["summaries"]["wiki"].append(response)
+    response = run_prompt(prompt, agent="wiki-expert", skill="wiki-verify", run_id=state["run_id"])
+    new_summaries = state["summaries"]["wiki"].copy()
+    new_summaries.append(response)
+    return {"summaries": {"wiki": new_summaries}}
 
 def prepare_lightrag(state: RAGIngestionState):
     print("WARNING: lightrag preparation is a stub, just passing full text + YAML frontmatter")

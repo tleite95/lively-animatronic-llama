@@ -89,6 +89,7 @@ import queue
 import sys
 import threading
 import time
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
@@ -689,6 +690,7 @@ def make_stream_listener(log: Callable[[str], None] = print) -> Listener:
         if text is None:
             return
         prefix = "\u2502  " * event.depth  # "│  " per depth level
+        time = datetime.now().strftime("(%H:%M)")
         icon = _ICONS.get(event.kind, "\u2022")
         if event.kind == "tool":
             if event.name == "task":
@@ -699,7 +701,7 @@ def make_stream_listener(log: Callable[[str], None] = print) -> Listener:
                 icon = "\u274C"
         for i, line in enumerate(text.splitlines() or [""]):
             marker = icon if i == 0 else "  "
-            log(f"{prefix}{marker} {line}")
+            log(f"{prefix}{time} {marker} {line}")
 
     return listener
 

@@ -63,6 +63,7 @@ Create configured report and log directories if missing.
 14. Validate cleaned outputs against the paired agent validation guidelines.
 15. Write the preparation report to `report_filepath`.
 
+
 ## Boundary repair procedure
 
 Use this procedure when reviewing candidate output chunks. Keep repairs source-faithful and minimal, but prioritize semantic boundary completeness over preserving original split points.
