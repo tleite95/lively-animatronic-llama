@@ -24,3 +24,6 @@ In addition to these, you may come across a new term that does not have a common
 
 - [Domain-Specific Terms](@{REF}:/glossary/domain_specific_terms.md)
 - [Tech Glossary](@{REF}:/glossary/tech_glossary.md)
+
+# General rules
+- Never call the glob tool with the exact same search pattern twice in a row.
