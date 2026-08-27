@@ -163,6 +163,7 @@ def batch_chunks_by_document__lightrag(state: RAGIngestionState):
 def batch_chunks_by_document__wiki(state: RAGIngestionState):
     return _batch_chunks_by_document(state, "wiki")
 
+# TODO: it actually turns out it doesn't make sense for these two branches to share much code oh well
 # TODO: might want to have some failsafe in here in case the queue is empty
 def _batch_chunks_by_document(state: RAGIngestionState, branch: str):
     doc_q = f"{branch}_doc_queue"
@@ -170,7 +171,7 @@ def _batch_chunks_by_document(state: RAGIngestionState, branch: str):
      
     state_updates = {
         doc_q: state[doc_q].copy(),
-        "manifest": {},
+        "manifest": {**state["manifest"]},
     }
         
     doc_name = state_updates[doc_q].pop(0)
@@ -230,10 +231,10 @@ def prepare_lightrag(state: RAGIngestionState):
     print("WARNING: lightrag preparation is a stub, just passing full text + YAML frontmatter")
 
 def insert_into_lightrag(state: RAGIngestionState):
-    asyncio.run(ainsert_into_lightrag(state))
+    asyncio.run(ainsert_into_lightrag(state["manifest"]["full_text"]))
    
-async def ainsert_into_lightrag(state, RAGIngestionState):
-    with open(state["manifest"]["full_text"]) as full_text_file:
+async def ainsert_into_lightrag(filen: str):
+    with open(filen) as full_text_file:
         full_text = full_text_file.read()
         rag = await get_lightrag()
         await rag.ainsert(full_text)
