@@ -7,7 +7,6 @@
       "skillPath": "skills/chembl_database/SKILL.md",
       "computedHash": "03c09a44af402741b381b3d449c6d499b50d88648df44d69bef07cb2e22f1068"
     },
-<<<<<<< HEAD
     "cheminformatics": {
       "source": "itallstartedwithaidea/agent-skills",
       "sourceType": "github",
@@ -36,7 +35,7 @@
       "sourceType": "github",
       "skillPath": "skills/rdkit/SKILL.md",
       "computedHash": "5de60212614e3577ff61ec21150462e17f49625015acefac67f76bb724e153b0"
-=======
+    },
     "deepchem": {
       "source": "k-dense-ai/claude-scientific-skills",
       "sourceType": "github",
@@ -67,12 +66,6 @@
       "skillPath": "skills/paper-reading/SKILL.md",
       "computedHash": "018b9d3214c1430112b132be0195e68fa81420f47c2e1a7c6f6b25f9c8b881d9"
     },
-    "pdf": {
-      "source": "anthropics/skills",
-      "sourceType": "github",
-      "skillPath": "skills/pdf/SKILL.md",
-      "computedHash": "cfbc539377088ca7e44a813b30c306327385bbd973cd7a721e1743f60837dd62"
-    },
     "pubmed-database": {
       "source": "affaan-m/everything-claude-code",
       "sourceType": "github",
@@ -96,7 +89,6 @@
       "sourceType": "github",
       "skillPath": "product-management/skills/synthesize-research/SKILL.md",
       "computedHash": "7921117657f8fc73856c5e518c464463cb94b86581d33b528a3f6be262fa42dc"
->>>>>>> brl/main
     }
   }
 }
