@@ -2,9 +2,8 @@ from pathlib import Path
 import shutil
 import json
 import asyncio
-import hashlib
 
-from lightrag_wrapper import get_lightrag, cleanup_lightrag
+from lightrag_wrapper import get_lightrag
 
 from state import RAGIngestionState
 
@@ -191,17 +190,14 @@ def batch_chunks_by_document__wiki(state: RAGIngestionState):
             record = json.loads(line.strip())
             if record["source_document_name"] == doc_name:
                 chunks.append(line)
-
-    hashed_filen = hashlib.md5(doc_name.encode('utf-8')).hexdigest()
-    doc_chunk_file = Path(state["manifest"]["run_dir"]) / f"{hashed_filen}.jsonl"
+    
+    doc_chunk_file = Path(state["manifest"]["run_dir"]) / f"{doc_name}.jsonl"
     doc_chunk_file.write_text("\n".join(chunks), encoding="utf-8")
     state_updates["current_wiki_doc"] = doc_chunk_file
     return state_updates
 
 def wiki_ingest(state: RAGIngestionState):
-    doc_stream = "\n".join(state["current_wiki_doc"])
-
-    prompt = f"Prepare the following JSONL stream for ingestion into the wiki: {doc_stream}"
+    prompt = f"Prepare the following JSONL stream for ingestion into the wiki: {state["current_wiki_doc"]}"
     response = run_prompt(prompt, agent="wiki-expert", skill="wiki-ingest", run_id=state["run_id"])
 
     ingestion_report = Path(state["manifest"]["report_folder"]) / "wiki_ingest_report.md"
