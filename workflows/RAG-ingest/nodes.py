@@ -2,6 +2,7 @@ from pathlib import Path
 import shutil
 import json
 import asyncio
+import hashlib
 
 from lightrag_wrapper import get_lightrag, cleanup_lightrag
 
@@ -191,7 +192,8 @@ def batch_chunks_by_document__wiki(state: RAGIngestionState):
             if record["source_document_name"] == doc_name:
                 chunks.append(line)
 
-    doc_chunk_file = Path(state["manifest"]["run_dir"]) / doc_name / ".jsonl"
+    hashed_filen = hashlib.md5(doc_name.encode('utf-8')).hexdigest()
+    doc_chunk_file = Path(state["manifest"]["run_dir"]) / f"{hashed_filen}.jsonl"
     doc_chunk_file.write_text("\n".join(chunks), encoding="utf-8")
     state_updates["current_wiki_doc"] = doc_chunk_file
     return state_updates
