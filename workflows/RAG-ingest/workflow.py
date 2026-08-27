@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import warnings
+
 from state import RAGIngestionState, make_initial_state
 
 from langgraph.graph import StateGraph, START, END
 
 import nodes
 import routers
+
+# PyTorch warning generated because Docling uses "torch_dtype" instead of "dtype"
+warnings.filterwarnings("ignore", message=".*W0807.*")
 
 def build_graph():
     builder = StateGraph(RAGIngestionState)

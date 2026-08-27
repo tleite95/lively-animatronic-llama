@@ -158,23 +158,31 @@ def empty(state: RAGIngestionState):
     pass
 
 def batch_chunks_by_document__lightrag(state: RAGIngestionState):
-    return _batch_chunks_by_document(state, "lightrag")
-
-def batch_chunks_by_document__wiki(state: RAGIngestionState):
-    return _batch_chunks_by_document(state, "wiki")
-
-# TODO: it actually turns out it doesn't make sense for these two branches to share much code oh well
-# TODO: might want to have some failsafe in here in case the queue is empty
-def _batch_chunks_by_document(state: RAGIngestionState, branch: str):
-    doc_q = f"{branch}_doc_queue"
-    cur_doc = f"current_{branch}_doc"
-     
     state_updates = {
-        doc_q: state[doc_q].copy(),
+        "lightrag_doc_queue": state["lightrag_doc_queue"].copy(),
         "manifest": {**state["manifest"]},
     }
-        
-    doc_name = state_updates[doc_q].pop(0)
+
+    doc_name = state_updates["lightrag_doc_queue"].pop(0)
+
+    full_text_file = Path(state["manifest"]["md_dir"]) / f"{Path(doc_name).stem}.md"
+    if not full_text_file.exists():
+        full_text_file = Path(state["manifest"]["txt_dir"]) / f"{Path(doc_name).stem}.txt"
+    if full_text_file.exists():
+        full_text_file = full_text_file.resolve()
+    else:
+        full_text_file = None
+    
+    state_updates["manifest"]["full_text"] = full_text_file
+    return state_updates
+
+def batch_chunks_by_document__wiki(state: RAGIngestionState): 
+    state_updates = {
+        "wiki_doc_queue": state["wiki_doc_queue"].copy(),
+        "manifest": {**state["manifest"]},
+    }
+
+    doc_name = state_updates["lightrag_doc_queue"].pop(0)
 
     chunks = []
     with open(state["manifest"]["final_jsonl"], "r") as ingestion_stream:
@@ -182,18 +190,8 @@ def _batch_chunks_by_document(state: RAGIngestionState, branch: str):
             record = json.loads(line.strip())
             if record["source_document_name"] == doc_name:
                 chunks.append(line)
-    state_updates[cur_doc] = chunks
 
-    if branch == "lightrag":
-        full_text_file = Path(state["manifest"]["md_dir"]) / f"{Path(doc_name).stem}.md"
-        if not full_text_file.exists():
-            full_text_file = Path(state["manifest"]["txt_dir"]) / f"{Path(doc_name).stem}.txt"
-        if full_text_file.exists():
-            full_text_file = full_text_file.resolve()
-        else:
-            full_text_file = None
-        state_updates["manifest"]["full_text"] = full_text_file
-
+    state_updates["current_wiki_doc"] = chunks
     return state_updates
 
 def wiki_ingest(state: RAGIngestionState):
@@ -201,7 +199,11 @@ def wiki_ingest(state: RAGIngestionState):
 
     prompt = f"Prepare the following JSONL stream for ingestion into the wiki: \n\n{doc_stream}"
     response = run_prompt(prompt, agent="wiki-expert", skill="wiki-ingest", run_id=state["run_id"])
-    return {"wiki_ingest_output": response}
+
+    ingestion_report = Path(state["manifest"]["report_folder"]) / "wiki_ingest_report.md"
+    ingestion_report.write_text(response, encoding="utf-8")
+
+    return {"wiki_ingest_output": str(ingestion_report.resolve())}
 
 def wiki_write(state: RAGIngestionState):
     report = state["wiki_ingest_output"]
@@ -209,10 +211,14 @@ def wiki_write(state: RAGIngestionState):
         "A document has just been ingested for insertion into the wiki. "
         "Edit the relevant wiki pages to add the new information. "
         "Create new pages only as needed. "
-        f"Here is the ingestion report:\n\n{report}"
+        f"Find the ingestion report at: {report}"
     )
+
     response = run_prompt(prompt, agent="wiki-expert", skill="wiki-write", run_id=state["run_id"])
-    return {"wiki_write_output": response}
+    insertion_report = Path(state["manifest"]["report_folder"]) / "wiki_insert_report.md"
+    insertion_report.write_text(response, encoding="utf-8")
+
+    return {"wiki_write_output": str(insertion_report.resolve())}
 
 def wiki_verify(state: RAGIngestionState):
     report = state["wiki_write_output"]
@@ -220,22 +226,27 @@ def wiki_verify(state: RAGIngestionState):
         "A series of changes has just been made to the wiki. "
         "Verify all newly inserted information, newly created page, and new claims. "
         "Make sure you check for contradictions across the affected pages as well as the wiki as a whole. "
-        f"Here is the insertion report:\n\n{report}"
+        f"Find the insertion report at: {report}"
     )
     response = run_prompt(prompt, agent="wiki-expert", skill="wiki-verify", run_id=state["run_id"])
     new_summaries = state["summaries"]["wiki"].copy()
     new_summaries.append(response)
-    return {"summaries": {"wiki": new_summaries}}
+    return {"summaries": {"lightrag": state["summaries"]["lightrag"].copy(), "wiki": new_summaries}}
 
 def prepare_lightrag(state: RAGIngestionState):
     print("WARNING: lightrag preparation is a stub, just passing full text + YAML frontmatter")
 
 def insert_into_lightrag(state: RAGIngestionState):
-    asyncio.run(ainsert_into_lightrag(state["manifest"]["full_text"]))
-   
+    new_summaries = state["summaries"]["wiki"].copy()
+    response = asyncio.run(ainsert_into_lightrag(state["manifest"]["full_text"]))
+    new_summaries.append(response)
+    return {"summaries": {"lightrag": new_summaries, "wiki": state["summaries"]["wiki"].copy()}}
+
 async def ainsert_into_lightrag(filen: str):
-    with open(filen) as full_text_file:
-        full_text = full_text_file.read()
-        rag = await get_lightrag()
-        await rag.ainsert(full_text)
-    
+    try:
+        with open(filen) as full_text_file:
+            full_text = full_text_file.read()
+            rag = await get_lightrag()
+            await rag.ainsert(full_text)
+    except Exception as e:
+        return f"Error inserting into lightrag: {e}"
