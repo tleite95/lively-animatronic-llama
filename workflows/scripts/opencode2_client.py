@@ -879,7 +879,15 @@ class Monitor:
         node.poll_failure_reported = False
 
         node.model_ref = info.get("model")
-        self._maybe_emit_status(node, info)
+        
+        # self._maybe_emit_status(node, info)
+        last_assistant_tokens = None
+        for message in reversed(messages):
+            if message.get("type") == "assistant" and message.get("tokens"):
+                last_assistant_tokens = message["tokens"]
+                break
+
+        self._maybe_emit_status(node, info, last_assistant_tokens)
         self._maybe_emit_session_error(node, info)
 
         for message in messages:
@@ -923,13 +931,14 @@ class Monitor:
             data={"error": err, "message": f"session error: {_short_repr(err, 500)}"},
         )
 
-    def _maybe_emit_status(self, node: SessionNode, info: dict) -> None:
-        tokens = info.get("tokens") or {}
+    def _maybe_emit_status(self, node: SessionNode, info: dict, last_assistant_tokens: Optional[dict]) -> None:
+        cumulative_tokens = info.get("tokens") or {}
         cost = info.get("cost")
         ctx_limit = self.catalog.context_limit(node.model_ref)
-        ctx_used = tokens.get("input", 0) + (tokens.get("cache", {}) or {}).get("read", 0)
+        turn_tokens = last_assistant_tokens or {}
+        ctx_used = turn_tokens.get("input", 0) + (turn_tokens.get("cache", {}) or {}).get("read", 0)
         pct = f"{(ctx_used / ctx_limit * 100):.1f}%" if ctx_limit else None
-        line = f"{node.label}|{fmt_tokens(tokens)}|{ctx_used}|{ctx_limit}|{cost}"
+        line = f"{node.label}|{fmt_tokens(cumulative_tokens)}|{ctx_used}|{ctx_limit}|{cost}"
         if line == node.last_status_line:
             return
         node.last_status_line = line
@@ -939,8 +948,8 @@ class Monitor:
             kind="status",
             data={
                 "label": node.label,
-                "tokens": tokens,
-                "tokens_str": fmt_tokens(tokens),
+                "tokens": cumulative_tokens,
+                "tokens_str": fmt_tokens(cumulative_tokens),
                 "cost": cost,
                 "context_used": ctx_used,
                 "context_limit": ctx_limit,
