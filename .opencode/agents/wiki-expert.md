@@ -3,6 +3,8 @@ description: Agent responsible for reading, writing, ingesting, editing, and ver
 mode: all
 permission:
   task: deny
+  websearch: deny
+  webfetch: deny
   skill:
     "*": deny
     "wiki-ingest": allow
