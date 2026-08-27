@@ -1,0 +1,278 @@
+{
+  "chemical": "aspirin",
+  "pathway": [
+    {
+      "event": "COX-1 Inhibition",
+      "type": "MIE",
+      "score": 0.95,
+      "provenance": [
+        "MIEs"
+      ]
+    },
+    {
+      "event": "Decreased Prostaglandin Synthesis",
+      "type": "KE",
+      "score": 0.95,
+      "provenance": [
+        "Candidates"
+      ]
+    },
+    {
+      "event": "Decreased Gastric Mucosal Prostaglandins",
+      "type": "KE",
+      "score": 0.9,
+      "provenance": [
+        "Candidates"
+      ]
+    },
+    {
+      "event": "Gastric Ulceration",
+      "type": "AO",
+      "score": 0.9,
+      "provenance": [
+        "Candidates"
+      ]
+    }
+  ],
+  "final_ao": true,
+  "confidence_score": 0.8302726343171469,
+  "confidence_breakdown": {
+    "mie_foundation": 0.855,
+    "pathway_confidence": 0.916962181561709,
+    "similarity_consistency": 0.8643482809217337,
+    "pathway_length_penalty": 1.0,
+    "pathway_uniqueness": 0.0,
+    "weights": {
+      "mie_foundation": 0.3,
+      "pathway_confidence": 0.4,
+      "similarity_consistency": 0.15,
+      "pathway_length": 0.05,
+      "pathway_uniqueness": 0.1
+    },
+    "local_confidence_score": 0.8029371147629436
+  },
+  "uncertainty": 0.16972736568285307,
+  "decision_risk": "low",
+  "next_action": "terminate",
+  "decision_reason": "The current pathway already established the MIE (COX-1 inhibition) and the subsequent reduction in prostaglandins. Adding Gastric Ulceration as the AO directly closes the pathway based on strong expert evidence and the known liabilities of aspirin.",
+  "iteration_count": 2,
+  "termination_reason": "The pathway has reached the terminal Adverse Outcome (Gastric Ulceration) supported by the target profile liability (gastrointestinal_toxicity) and expert candidate reasoning.",
+  "MIEs": [
+    {
+      "name": "COX-1 Inhibition",
+      "confidence": 0.95,
+      "reasoning": "Aspirin's primary mechanism is the irreversible acetylation of COX-1, leading to decreased prostaglandin synthesis, which is directly linked to the gastrointestinal toxicity liability."
+    }
+  ],
+  "similarity_scores": [
+    {
+      "name": "Decreased Gastric Mucosal Prostaglandins",
+      "similarity": 0.405,
+      "reasoning": "candidate reasoning overlaps target profile; candidate text overlaps target profile terms; candidate confidence carried forward"
+    },
+    {
+      "name": "Gastric Ulceration",
+      "similarity": 0.3225,
+      "reasoning": "candidate reasoning overlaps target profile; candidate text overlaps target profile terms; candidate confidence carried forward"
+    },
+    {
+      "name": "Increased Gastric Permeability",
+      "similarity": 0.085,
+      "reasoning": "candidate confidence carried forward"
+    }
+  ],
+  "candidates": [
+    {
+      "name": "Decreased Gastric Mucosal Prostaglandins",
+      "type": "KE",
+      "confidence": 0.9,
+      "similarity": 0.405,
+      "reasoning": "Following decreased prostaglandin synthesis, a specific reduction in gastric mucosal prostaglandins is a documented key event leading to gastrointestinal toxicity in AOP-Wiki pathways related to COX inhibition.",
+      "source": "aop_expert",
+      "similarity_reasoning": "candidate reasoning overlaps target profile; candidate text overlaps target profile terms; candidate confidence carried forward"
+    },
+    {
+      "name": "Gastric Ulceration",
+      "type": "AO",
+      "confidence": 0.9,
+      "similarity": 0.3225,
+      "reasoning": "Gastric ulceration is the documented adverse outcome resulting from the cascade of COX-1 inhibition and subsequent loss of mucosal protection.",
+      "source": "aop_expert",
+      "similarity_reasoning": "candidate reasoning overlaps target profile; candidate text overlaps target profile terms; candidate confidence carried forward"
+    },
+    {
+      "name": "Increased Gastric Permeability",
+      "type": "KE",
+      "confidence": 0.85,
+      "similarity": 0.085,
+      "reasoning": "The loss of protective prostaglandins leads to increased gastric mucosal permeability, a documented intermediate step in the development of gastric ulcers.",
+      "source": "aop_expert",
+      "similarity_reasoning": "candidate confidence carried forward"
+    }
+  ],
+  "provenance": [
+    {
+      "node": "Initial_ADMET",
+      "agent": "admet_mie",
+      "reason": "Target profile and initial MIEs extracted",
+      "timestamp": 1787767403.5427136,
+      "source_hint": "aspirin"
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 3 candidates",
+      "timestamp": 1787767403.544874,
+      "source_hint": "aspirin",
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 1.0,
+        "generic_score": 1.0
+      },
+      "read_across_summary": "",
+      "read_across_analogs": [],
+      "read_across_endpoints": []
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 3 candidates",
+      "timestamp": 1787767429.8099504
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "AOP Constructor selected the next pathway step",
+      "timestamp": 1787767429.8127615,
+      "confidence": 0.95,
+      "similarity": 0.3275,
+      "selected_candidate": {
+        "name": "Decreased Prostaglandin Synthesis",
+        "type": "KE",
+        "confidence": 0.95,
+        "similarity": 0.3275,
+        "reasoning": "Direct downstream result of COX-1 inhibition as documented in AOP-Wiki for NSAIDs, leading to reduced mucosal protection in the GI tract."
+      }
+    },
+    {
+      "node": "expand",
+      "agent": "internal_critic",
+      "reason": "Forced expansion due to generic or template-like pathway",
+      "timestamp": 1787767429.8127663,
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 1.0,
+        "generic_score": 1.0
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1787767429.8141017,
+      "critic_flags": {
+        "template_overlap": 0.75,
+        "pathway_uniqueness": 0.25,
+        "generic_score": 0.0,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": "Pathway is still too shallow"
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 3 candidates",
+      "timestamp": 1787767429.8171253,
+      "source_hint": "aspirin",
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.75,
+        "pathway_uniqueness": 0.25,
+        "generic_score": 0.0
+      },
+      "read_across_summary": "",
+      "read_across_analogs": [],
+      "read_across_endpoints": []
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 3 candidates",
+      "timestamp": 1787767453.6625247
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "AOP Constructor selected the next pathway step",
+      "timestamp": 1787767453.6650398,
+      "confidence": 0.9,
+      "similarity": 0.405,
+      "selected_candidate": {
+        "name": "Decreased Gastric Mucosal Prostaglandins",
+        "type": "KE",
+        "confidence": 0.9,
+        "similarity": 0.405,
+        "reasoning": "Following decreased prostaglandin synthesis, a specific reduction in gastric mucosal prostaglandins is a documented key event leading to gastrointestinal toxicity in AOP-Wiki pathways related to COX inhibition."
+      }
+    },
+    {
+      "node": "expand",
+      "agent": "internal_critic",
+      "reason": "Forced expansion due to generic or template-like pathway",
+      "timestamp": 1787767453.665043,
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.75,
+        "pathway_uniqueness": 0.25,
+        "generic_score": 0.0
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1787767453.666312,
+      "critic_flags": {
+        "template_overlap": 0.9,
+        "pathway_uniqueness": 0.09999999999999998,
+        "generic_score": 0.04499999999999999,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": "Pathway is still too shallow"
+    },
+    {
+      "node": "finalize",
+      "agent": "aop_constructor",
+      "reason": "Final AO closure accepted",
+      "timestamp": 1787767453.6681483,
+      "confidence": 0.9,
+      "similarity": 0.3225,
+      "selected_candidate": {
+        "name": "Gastric Ulceration",
+        "type": "AO",
+        "confidence": 0.9,
+        "similarity": 0.3225,
+        "reasoning": "Gastric ulceration is the documented adverse outcome resulting from the cascade of COX-1 inhibition and subsequent loss of mucosal protection."
+      },
+      "read_across_confidence": 0.0,
+      "read_across_analogs": []
+    }
+  ],
+  "no_candidate_cycles": 0,
+  "critic_flags": {
+    "template_overlap": 0.9,
+    "pathway_uniqueness": 0.09999999999999998,
+    "generic_score": 0.04499999999999999,
+    "template_reuse": false,
+    "premature_termination": false
+  },
+  "critic_reason": "Pathway is still too shallow"
+}

@@ -1,0 +1,124 @@
+{
+  "chemical": "penicillin",
+  "pathway": [],
+  "final_ao": false,
+  "confidence_score": 0.0,
+  "confidence_breakdown": {},
+  "uncertainty": 0.0,
+  "decision_risk": "medium",
+  "next_action": "terminate",
+  "decision_reason": "",
+  "iteration_count": 0,
+  "termination_reason": "No candidates met similarity threshold",
+  "MIEs": [
+    {
+      "name": "Haptenization of host proteins",
+      "confidence": 0.9,
+      "reasoning": "The beta-lactam ring of penicillin can act as a hapten, covalently binding to host proteins to form an immunogenic complex, leading to Type I and Type IV hypersensitivity reactions."
+    }
+  ],
+  "similarity_scores": [
+    {
+      "name": "Mast cell degranulation",
+      "similarity": 0.0,
+      "reasoning": "Error during scoring: Agent execution failed: Error code: 401 - {'error': {'message': \"key not allowed to access model. This key can only access models=['gemma-4-31b', 'devstral-small', 'olmo-3.1-32b']. Tried to access gpt-3.5-turbo\", 'type': 'key_model_access_denied', 'param': 'model', 'code': '401'}}"
+    },
+    {
+      "name": "Anaphylaxis",
+      "similarity": 0.0,
+      "reasoning": "Error during scoring: Agent execution failed: Error code: 401 - {'error': {'message': \"key not allowed to access model. This key can only access models=['gemma-4-31b', 'devstral-small', 'olmo-3.1-32b']. Tried to access gpt-3.5-turbo\", 'type': 'key_model_access_denied', 'param': 'model', 'code': '401'}}"
+    },
+    {
+      "name": "Activation of T-cells",
+      "similarity": 0.0,
+      "reasoning": "Error during scoring: Agent execution failed: Error code: 401 - {'error': {'message': \"key not allowed to access model. This key can only access models=['gemma-4-31b', 'devstral-small', 'olmo-3.1-32b']. Tried to access gpt-3.5-turbo\", 'type': 'key_model_access_denied', 'param': 'model', 'code': '401'}}"
+    }
+  ],
+  "candidates": [],
+  "provenance": [
+    {
+      "node": "Initial_ADMET",
+      "agent": "admet_mie",
+      "reason": "Target profile and initial MIEs extracted",
+      "timestamp": 1786750644.8364918,
+      "source_hint": "penicillin"
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 3 candidates",
+      "timestamp": 1786750663.404969,
+      "source_hint": "penicillin",
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 1.0,
+        "generic_score": 1.0
+      },
+      "read_across_summary": "No Tox21 records available.",
+      "read_across_analogs": [],
+      "read_across_endpoints": []
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 3 candidates",
+      "timestamp": 1786750663.4643302,
+      "source_hint": "penicillin",
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 1.0,
+        "generic_score": 1.0
+      },
+      "read_across_summary": "No Tox21 records available.",
+      "read_across_analogs": [],
+      "read_across_endpoints": []
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 3 candidates",
+      "timestamp": 1786750663.6003587
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "No candidates available; terminating without fallback",
+      "timestamp": 1786750663.6013937,
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 1.0,
+        "generic_score": 1.0
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1786750663.60213,
+      "critic_flags": {
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 1.0,
+        "generic_score": 1.0,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": "Pathway is still too shallow"
+    }
+  ],
+  "visualization_path": "",
+  "no_candidate_cycles": 2,
+  "critic_flags": {
+    "template_overlap": 0.0,
+    "pathway_uniqueness": 1.0,
+    "generic_score": 1.0,
+    "template_reuse": false,
+    "premature_termination": false
+  },
+  "critic_reason": "Pathway is still too shallow"
+}

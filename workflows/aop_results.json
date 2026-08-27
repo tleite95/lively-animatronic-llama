@@ -1,0 +1,480 @@
+{
+  "chemical": "metformin",
+  "pathway": [
+    {
+      "event": "Mitochondrial Complex I Inhibition",
+      "type": "MIE",
+      "score": 0.9,
+      "provenance": [
+        "Metformin inhibits the mitochondrial respiratory chain complex I, leading to an increase in the AMP/ATP ratio and subsequent activation of AMPK."
+      ]
+    },
+    {
+      "event": "Increased AMP/ATP ratio",
+      "type": "KE",
+      "score": 0.95,
+      "provenance": [
+        "Direct consequence of Mitochondrial Complex I inhibition as documented in AOP-Wiki pathways related to metabolic stress and AMPK activation."
+      ]
+    },
+    {
+      "event": "AMPK Activation",
+      "type": "KE",
+      "score": 0.95,
+      "provenance": [
+        "Direct downstream event of increased AMP/ATP ratio as documented in AOP-Wiki for metabolic stress pathways and explicitly listed in the chemical's mechanism of action."
+      ]
+    },
+    {
+      "event": "Inhibition of gluconeogenesis",
+      "type": "KE",
+      "score": 0.9,
+      "provenance": [
+        "AMPK activation leads to the inhibition of hepatic gluconeogenesis, a documented downstream event in AOP-Wiki pathways related to metabolic regulation and the primary therapeutic effect of metformin."
+      ]
+    },
+    {
+      "event": "Decreased hepatic glucose production",
+      "type": "KE",
+      "score": 0.9,
+      "provenance": [
+        "Direct downstream consequence of the inhibition of gluconeogenesis, documented in AOP-Wiki metabolic regulation pathways as the physiological result of AMPK activation in the liver."
+      ]
+    },
+    {
+      "event": "Increased lactate production",
+      "type": "KE",
+      "score": 0.85,
+      "provenance": [
+        "Inhibition of Mitochondrial Complex I leads to a shift toward anaerobic glycolysis and increased lactate production, a documented precursor to lactic acidosis in AOP-Wiki metabolic stress pathways."
+      ]
+    },
+    {
+      "event": "Lactic Acidosis",
+      "type": "AO",
+      "score": 0.95,
+      "provenance": [
+        "Increased lactate production is the direct precursor to the Adverse Outcome of Lactic Acidosis in AOP-Wiki metabolic stress pathways, and is a known liability for metformin."
+      ]
+    }
+  ],
+  "final_ao": true,
+  "confidence_score": 0.7720667707403219,
+  "confidence_breakdown": {
+    "mie_foundation": 0.675,
+    "pathway_confidence": 0.9122789958163221,
+    "similarity_consistency": 0.5,
+    "pathway_length_penalty": 0.8,
+    "pathway_uniqueness": 0.896551724137931,
+    "weights": {
+      "mie_foundation": 0.3,
+      "pathway_confidence": 0.4,
+      "similarity_consistency": 0.15,
+      "pathway_length": 0.05,
+      "pathway_uniqueness": 0.1
+    },
+    "local_confidence_score": 0.7720667707403219
+  },
+  "uncertainty": 0.22793322925967807,
+  "decision_risk": "low",
+  "next_action": "expand",
+  "decision_reason": "The candidate 'Lactic Acidosis' is a direct and documented consequence of 'Increased lactate production'. Adding this AO completes the pathway from the MIE (Mitochondrial Complex I Inhibition) to the known clinical liability.",
+  "iteration_count": 6,
+  "termination_reason": "Critic forced expansion: pathway is not ready to terminate",
+  "MIEs": [
+    {
+      "name": "Mitochondrial Complex I Inhibition",
+      "confidence": 0.9,
+      "reasoning": "Metformin inhibits the mitochondrial respiratory chain complex I, leading to an increase in the AMP/ATP ratio and subsequent activation of AMPK."
+    }
+  ],
+  "similarity_scores": [
+    {
+      "name": "Lactic Acidosis",
+      "similarity": 0.0,
+      "reasoning": ""
+    }
+  ],
+  "candidates": [
+    {
+      "name": "Lactic Acidosis",
+      "type": "AO",
+      "confidence": 0.95,
+      "similarity": 0.0,
+      "reasoning": "The current pathway ends at 'Increased lactate production'. In AOP-Wiki metabolic stress pathways, increased lactate production is the direct precursor to the Adverse Outcome of Lactic Acidosis, which is also explicitly listed as a known liability for metformin.",
+      "similarity_reasoning": ""
+    }
+  ],
+  "provenance": [
+    {
+      "node": "Initial_ADMET",
+      "agent": "admet_mie",
+      "reason": "Target profile and initial MIEs extracted",
+      "timestamp": 1786402780.8169873,
+      "source_hint": "metformin"
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 4 candidates",
+      "timestamp": 1786402795.7465096,
+      "source_hint": "metformin",
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 1.0,
+        "generic_score": 1.0
+      }
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 4 candidates",
+      "timestamp": 1786402827.16822
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "AOP constructor selected the next pathway step",
+      "timestamp": 1786402856.1825411,
+      "confidence": 0.95,
+      "similarity": 0.0,
+      "selected_candidate": {
+        "name": "Increased AMP/ATP ratio",
+        "type": "KE",
+        "confidence": 0.95,
+        "similarity": 0.0,
+        "reasoning": "Direct consequence of Mitochondrial Complex I inhibition as documented in AOP-Wiki pathways related to metabolic stress and AMPK activation."
+      }
+    },
+    {
+      "node": "expand",
+      "agent": "internal_critic",
+      "reason": "Forced expansion due to generic or template-like pathway",
+      "timestamp": 1786402856.1825438,
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 1.0,
+        "generic_score": 1.0
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1786402856.1836517,
+      "critic_flags": {
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 0.0,
+        "generic_score": 0.0,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": "Pathway is still too shallow"
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 4 candidates",
+      "timestamp": 1786402870.1758451,
+      "source_hint": "metformin",
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.1,
+        "pathway_uniqueness": 0.9,
+        "generic_score": 0.0
+      }
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 4 candidates",
+      "timestamp": 1786402899.941828
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "AOP constructor selected the next pathway step",
+      "timestamp": 1786402934.3050632,
+      "confidence": 0.95,
+      "similarity": 0.0,
+      "selected_candidate": {
+        "name": "AMPK Activation",
+        "type": "KE",
+        "confidence": 0.95,
+        "similarity": 0.0,
+        "reasoning": "Direct downstream event of increased AMP/ATP ratio as documented in AOP-Wiki for metabolic stress pathways and explicitly listed in the chemical's mechanism of action."
+      }
+    },
+    {
+      "node": "expand",
+      "agent": "internal_critic",
+      "reason": "Forced expansion due to generic or template-like pathway",
+      "timestamp": 1786402934.3050656,
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.1,
+        "pathway_uniqueness": 0.9,
+        "generic_score": 0.0
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1786402934.3061888,
+      "critic_flags": {
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 0.0,
+        "generic_score": 0.0,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": "Pathway is still too shallow"
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 4 candidates",
+      "timestamp": 1786402949.8954258,
+      "source_hint": "metformin",
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.09090909090909091,
+        "pathway_uniqueness": 0.9090909090909091,
+        "generic_score": 0.0
+      }
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 4 candidates",
+      "timestamp": 1786402984.696334
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "AOP constructor selected the next pathway step",
+      "timestamp": 1786403024.729367,
+      "confidence": 0.9,
+      "similarity": 0.0,
+      "selected_candidate": {
+        "name": "Inhibition of gluconeogenesis",
+        "type": "KE",
+        "confidence": 0.9,
+        "similarity": 0.0,
+        "reasoning": "AMPK activation leads to the inhibition of hepatic gluconeogenesis, a documented downstream event in AOP-Wiki pathways related to metabolic regulation and the primary therapeutic effect of metformin."
+      }
+    },
+    {
+      "node": "expand",
+      "agent": "internal_critic",
+      "reason": "Forced expansion due to generic or template-like pathway",
+      "timestamp": 1786403024.7293694,
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.09090909090909091,
+        "pathway_uniqueness": 0.9090909090909091,
+        "generic_score": 0.0
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1786403024.7304473,
+      "critic_flags": {
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 0.0,
+        "generic_score": 0.0,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": "Pathway is still too shallow"
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 3 candidates",
+      "timestamp": 1786403036.9975917,
+      "source_hint": "metformin",
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.08695652173913043,
+        "pathway_uniqueness": 0.9130434782608696,
+        "generic_score": 0.06923076923076923
+      }
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 3 candidates",
+      "timestamp": 1786403061.016847
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "AOP constructor selected the next pathway step",
+      "timestamp": 1786403108.0620508,
+      "confidence": 0.9,
+      "similarity": 0.0,
+      "selected_candidate": {
+        "name": "Decreased hepatic glucose production",
+        "type": "KE",
+        "confidence": 0.9,
+        "similarity": 0.0,
+        "reasoning": "Direct downstream consequence of the inhibition of gluconeogenesis, documented in AOP-Wiki metabolic regulation pathways as the physiological result of AMPK activation in the liver."
+      }
+    },
+    {
+      "node": "expand",
+      "agent": "internal_critic",
+      "reason": "Forced expansion due to generic or template-like pathway",
+      "timestamp": 1786403108.0620534,
+      "pathway_review": {
+        "should_expand": true,
+        "reason": "Pathway is still too shallow",
+        "template_overlap": 0.08695652173913043,
+        "pathway_uniqueness": 0.9130434782608696,
+        "generic_score": 0.06923076923076923
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1786403108.0632002,
+      "critic_flags": {
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 0.0,
+        "generic_score": 0.0,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": ""
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 2 candidates",
+      "timestamp": 1786403116.1940427,
+      "source_hint": "metformin",
+      "pathway_review": {
+        "should_expand": false,
+        "reason": "",
+        "template_overlap": 0.11538461538461539,
+        "pathway_uniqueness": 0.8846153846153846,
+        "generic_score": 0.05294117647058825
+      }
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 2 candidates",
+      "timestamp": 1786403131.2776592
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "AOP constructor selected the next pathway step",
+      "timestamp": 1786403183.288769,
+      "confidence": 0.85,
+      "similarity": 0.0,
+      "selected_candidate": {
+        "name": "Increased lactate production",
+        "type": "KE",
+        "confidence": 0.85,
+        "similarity": 0.0,
+        "reasoning": "Inhibition of Mitochondrial Complex I leads to a shift toward anaerobic glycolysis and increased lactate production, a documented precursor to lactic acidosis in AOP-Wiki metabolic stress pathways."
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1786403183.2899134,
+      "critic_flags": {
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 0.0,
+        "generic_score": 0.0,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": ""
+    },
+    {
+      "node": "candidate_gen",
+      "agent": "aop_expert",
+      "reason": "Generated 1 candidates",
+      "timestamp": 1786403188.6006577,
+      "source_hint": "metformin",
+      "pathway_review": {
+        "should_expand": false,
+        "reason": "",
+        "template_overlap": 0.1111111111111111,
+        "pathway_uniqueness": 0.8888888888888888,
+        "generic_score": 0.08999999999999998
+      }
+    },
+    {
+      "node": "Similarity_Scoring",
+      "agent": "admet_mie",
+      "reason": "Scored 1 candidates",
+      "timestamp": 1786403197.002101
+    },
+    {
+      "node": "expand",
+      "agent": "aop_constructor",
+      "reason": "AOP constructor selected the next pathway step",
+      "timestamp": 1786403253.9895983,
+      "confidence": 0.95,
+      "similarity": 0.0,
+      "selected_candidate": {
+        "name": "Lactic Acidosis",
+        "type": "AO",
+        "confidence": 0.95,
+        "similarity": 0.0,
+        "reasoning": "The current pathway ends at 'Increased lactate production'. In AOP-Wiki metabolic stress pathways, increased lactate production is the direct precursor to the Adverse Outcome of Lactic Acidosis, which is also explicitly listed as a known liability for metformin."
+      }
+    },
+    {
+      "node": "critic",
+      "agent": "internal_critic",
+      "reason": "Local verification checkpoint",
+      "timestamp": 1786403253.9907584,
+      "critic_flags": {
+        "template_overlap": 0.0,
+        "pathway_uniqueness": 0.0,
+        "generic_score": 0.0,
+        "template_reuse": false,
+        "premature_termination": false
+      },
+      "critic_reason": ""
+    },
+    {
+      "node": "visualize",
+      "agent": "visuals_agent",
+      "reason": "No PNG path returned",
+      "timestamp": 1786403306.5182028,
+      "source_hint": "/home/avam11/lively-animatronic-llama/workflows/outputs/metformin_aop_topological_map.png"
+    }
+  ],
+  "visualization_path": "",
+  "no_candidate_cycles": 0,
+  "critic_flags": {
+    "template_overlap": 0.0,
+    "pathway_uniqueness": 0.0,
+    "generic_score": 0.0,
+    "template_reuse": false,
+    "premature_termination": false
+  },
+  "critic_reason": ""
+}

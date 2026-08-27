@@ -1,0 +1,21 @@
+{
+  "identifiers": {
+    "IdentifierList": {
+      "CID": [
+        2267
+      ]
+    }
+  },
+  "properties": {
+    "PropertyTable": {
+      "Properties": [
+        {
+          "CID": 2267,
+          "SMILES": "CN1CCCC(CC1)N2C(=O)C3=CC=CC=C3C(=N2)CC4=CC=C(C=C4)Cl",
+          "ConnectivitySMILES": "CN1CCCC(CC1)N2C(=O)C3=CC=CC=C3C(=N2)CC4=CC=C(C=C4)Cl",
+          "InChIKey": "MBUVEWMHONZEQD-UHFFFAOYSA-N"
+        }
+      ]
+    }
+  }
+}

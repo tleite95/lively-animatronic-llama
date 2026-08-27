@@ -1,0 +1,305 @@
+{
+  "ignored_key_prefixes": [
+    "NR-",
+    "SR-"
+  ],
+  "ignored_key_suffixes": [
+    "_drugbank_approved_percentile"
+  ],
+  "excluded_keys": [
+    "hERG",
+    "AMES",
+    "DILI",
+    "Carcinogens_Lagunin",
+    "Skin_Reaction",
+    "BBB_Martins",
+    "Pgp_Broccatelli",
+    "Caco2_Wang",
+    "logP",
+    "PAINS_alert",
+    "BRENK_alert",
+    "NIH_alert",
+    "Clearance_Hepatocyte_AZ",
+    "Clearance_Microsome_AZ",
+    "PPBR_AZ",
+    "Solubility_AqSolDB"
+  ],
+  "thresholds": {
+    "moderate_low": 0.3,
+    "high": 0.7
+  },
+  "buckets": {
+    "exposure_modifiers": "Contextual PK/ADME signals that make a mapped MIE or KE more or less biologically plausible in vivo.",
+    "liability_phenotypes": "Broad endpoint or metabolism liabilities that do not map cleanly to one OECD event but help nominate AOP neighborhoods.",
+    "chemistry_quality": "Descriptor-based caution signals to use as weak supporting evidence or de-prioritization filters."
+  },
+  "families": {
+    "systemic_exposure": {
+      "bucket": "exposure_modifiers",
+      "summary": "Higher scores mean the compound is more likely to be absorbed and reach systemic circulation.",
+      "rules": [
+        {
+          "key": "Bioavailability_Ma",
+          "weight": 0.4,
+          "transform": "identity"
+        },
+        {
+          "key": "HIA_Hou",
+          "weight": 0.35,
+          "transform": "identity"
+        },
+        {
+          "key": "PAMPA_NCATS",
+          "weight": 0.25,
+          "transform": "identity"
+        }
+      ]
+    },
+    "persistence_distribution": {
+      "bucket": "exposure_modifiers",
+      "summary": "Higher scores mean longer residence time and broader tissue distribution.",
+      "rules": [
+        {
+          "key": "Half_Life_Obach",
+          "weight": 0.45,
+          "transform": "piecewise",
+          "breakpoints": [
+            1.0,
+            6.0,
+            24.0
+          ],
+          "scores": [
+            0.0,
+            0.35,
+            0.7,
+            1.0
+          ]
+        },
+        {
+          "key": "VDss_Lombardo",
+          "weight": 0.35,
+          "transform": "piecewise",
+          "breakpoints": [
+            -0.5,
+            0.5,
+            1.5
+          ],
+          "scores": [
+            0.1,
+            0.4,
+            0.7,
+            1.0
+          ]
+        },
+        {
+          "key": "Lipophilicity_AstraZeneca",
+          "weight": 0.2,
+          "transform": "piecewise",
+          "breakpoints": [
+            1.0,
+            3.0,
+            5.0
+          ],
+          "scores": [
+            0.1,
+            0.4,
+            0.8,
+            1.0
+          ]
+        }
+      ]
+    },
+    "broad_toxicity": {
+      "bucket": "liability_phenotypes",
+      "summary": "Higher scores mean stronger broad toxicity concern even without a clean single-event mapping.",
+      "rules": [
+        {
+          "key": "ClinTox",
+          "weight": 0.65,
+          "transform": "identity"
+        },
+        {
+          "key": "LD50_Zhu",
+          "weight": 0.35,
+          "transform": "piecewise",
+          "breakpoints": [
+            50.0,
+            300.0,
+            2000.0
+          ],
+          "scores": [
+            1.0,
+            0.8,
+            0.4,
+            0.1
+          ]
+        }
+      ]
+    },
+    "metabolic_interaction": {
+      "bucket": "liability_phenotypes",
+      "summary": "Higher scores mean more CYP-mediated interaction or metabolism dependence.",
+      "rules": [
+        {
+          "key": "CYP1A2_Veith",
+          "weight": 0.12,
+          "transform": "identity"
+        },
+        {
+          "key": "CYP2C19_Veith",
+          "weight": 0.12,
+          "transform": "identity"
+        },
+        {
+          "key": "CYP2C9_Veith",
+          "weight": 0.12,
+          "transform": "identity"
+        },
+        {
+          "key": "CYP2D6_Veith",
+          "weight": 0.12,
+          "transform": "identity"
+        },
+        {
+          "key": "CYP3A4_Veith",
+          "weight": 0.12,
+          "transform": "identity"
+        },
+        {
+          "key": "CYP2C9_Substrate_CarbonMangels",
+          "weight": 0.13,
+          "transform": "identity"
+        },
+        {
+          "key": "CYP2D6_Substrate_CarbonMangels",
+          "weight": 0.13,
+          "transform": "identity"
+        },
+        {
+          "key": "CYP3A4_Substrate_CarbonMangels",
+          "weight": 0.14,
+          "transform": "identity"
+        }
+      ]
+    },
+    "druglikeness_caution": {
+      "bucket": "chemistry_quality",
+      "summary": "Higher scores mean the chemistry looks less clean or less drug-like, so treat downstream mapping with more caution.",
+      "rules": [
+        {
+          "key": "molecular_weight",
+          "weight": 0.15,
+          "transform": "piecewise",
+          "breakpoints": [
+            300.0,
+            500.0,
+            700.0
+          ],
+          "scores": [
+            0.0,
+            0.3,
+            0.7,
+            1.0
+          ]
+        },
+        {
+          "key": "hydrogen_bond_acceptors",
+          "weight": 0.1,
+          "transform": "piecewise",
+          "breakpoints": [
+            6.0,
+            10.0,
+            14.0
+          ],
+          "scores": [
+            0.0,
+            0.3,
+            0.7,
+            1.0
+          ]
+        },
+        {
+          "key": "hydrogen_bond_donors",
+          "weight": 0.1,
+          "transform": "piecewise",
+          "breakpoints": [
+            2.0,
+            5.0,
+            8.0
+          ],
+          "scores": [
+            0.0,
+            0.3,
+            0.7,
+            1.0
+          ]
+        },
+        {
+          "key": "tpsa",
+          "weight": 0.15,
+          "transform": "piecewise",
+          "breakpoints": [
+            90.0,
+            140.0,
+            180.0
+          ],
+          "scores": [
+            0.0,
+            0.3,
+            0.7,
+            1.0
+          ]
+        },
+        {
+          "key": "QED",
+          "weight": 0.2,
+          "transform": "one_minus"
+        },
+        {
+          "key": "Lipinski",
+          "weight": 0.15,
+          "transform": "binary_inverse",
+          "positive_value": 1
+        },
+        {
+          "key": "stereo_centers",
+          "weight": 0.15,
+          "transform": "piecewise",
+          "breakpoints": [
+            1.0,
+            3.0,
+            5.0
+          ],
+          "scores": [
+            0.0,
+            0.25,
+            0.6,
+            1.0
+          ]
+        }
+      ]
+    }
+  },
+  "annotation_groups": {
+    "exposure_flags": [
+      "systemic_exposure",
+      "persistence_distribution"
+    ],
+    "organ_bias": [
+      "broad_toxicity",
+      "metabolic_interaction"
+    ],
+    "supporting_evidence": [
+      "druglikeness_caution"
+    ]
+  },
+  "version": "1.0",
+  "notes": {
+    "score_semantics": "All family and bucket scores are normalized to 0-1, where 0.3-0.7 is moderate and >=0.7 is high.",
+    "scope": "This config only covers the three secondary buckets discussed after excluding NR-*, SR-*, the direct high-priority AOP candidates, and keys already used as combine_with modifiers.",
+    "report_only_unmapped": [
+      "HydrationFreeEnergy_FreeSolv"
+    ],
+    "report_only_reason": "These keys are still surfaced by the script in unmapped_keys_present, but are not scored until a clearer simple heuristic is defined."
+  }
+}

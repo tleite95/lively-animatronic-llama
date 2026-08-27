@@ -1,0 +1,498 @@
+{
+  "_metadata": {
+    "description": "Static mapping from ADMET-AI SDK Tox21 sub-assay output labels to matching Key Event (KE) and Molecular Initiating Event (MIE) IDs in the OECD AOP-Wiki bulk XML download (https://aopwiki.org/downloads).",
+    "admet_ai_version": "2.x (tdc_constants.py as of 2026)",
+    "aop_wiki_source": "OECD AOP Knowledge Base bulk XML download, aopwiki.org — Release 2.8 (March 2026)",
+    "aop_wiki_base_url": "https://aopwiki.org",
+    "notes": [
+      "ADMET-AI outputs Tox21 sub-assay probabilities using short labels (e.g. 'NR-AhR'). These labels do not match any KE title verbatim in the AOP-Wiki XML.",
+      "This map provides the corresponding AOP-Wiki Key Event IDs and titles, plus the AOP IDs where each KE serves as the Molecular Initiating Event (MIE).",
+      "NR-* assays (Nuclear Receptor) are clean MIEs — they measure direct ligand-receptor molecular interactions.",
+      "SR-* assays (Stress Response) measure downstream pathway activation; their upstream MIEs are listed where applicable.",
+      "For NR-AR-LBD and NR-ER-LBD: these are technically the same MIE as NR-AR and NR-ER respectively, measured through a ligand-binding-domain construct rather than full-length receptor.",
+      "KE event page URL format: https://aopwiki.org/events/{ke_id}",
+      "AOP page URL format: https://aopwiki.org/aops/{aop_id}"
+    ]
+  },
+  "mappings": [
+    {
+      "admet_ai_label": "NR-AR",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Nuclear Receptor Androgen Receptor (full-length) agonist assay. Positive = activates (agonizes) the full-length androgen receptor.",
+      "biological_mechanism": "Androgen receptor agonism — direct ligand-receptor interaction initiating androgen receptor signalling.",
+      "is_mie_in_aop_wiki": true,
+      "primary_ke_mapping": {
+        "ke_id": 25,
+        "ke_title": "Agonism, Androgen receptor",
+        "ke_url": "https://aopwiki.org/events/25",
+        "biological_level": "Molecular",
+        "match_quality": "High — NR-AR directly measures androgen receptor agonism, which is the defined molecular initiating event in multiple AOPs.",
+        "aop_ids_where_mie": [23, 376, 496]
+      },
+      "secondary_ke_mappings": [
+        {
+          "ke_id": 785,
+          "ke_title": "Activation, Androgen receptor",
+          "ke_url": "https://aopwiki.org/events/785",
+          "match_quality": "High — used as MIE for AR-dependent carcinogenesis AOPs.",
+          "aop_ids_where_mie": [117, 495]
+        }
+      ],
+      "representative_aops": [
+        {"aop_id": 23, "aop_title": "Androgen receptor agonism leading to reproductive dysfunction (in repeat-spawning fish)", "aop_url": "https://aopwiki.org/aops/23"},
+        {"aop_id": 376, "aop_title": "Androgen receptor agonism leading to male-biased sex ratio", "aop_url": "https://aopwiki.org/aops/376"},
+        {"aop_id": 496, "aop_title": "Androgen receptor agonism leading to reproduction dysfunction (in zebrafish)", "aop_url": "https://aopwiki.org/aops/496"},
+        {"aop_id": 117, "aop_title": "Androgen receptor activation leading to hepatocellular adenomas and carcinomas (in mouse and rat)", "aop_url": "https://aopwiki.org/aops/117"},
+        {"aop_id": 495, "aop_title": "Androgen receptor activation leading to prostate cancer", "aop_url": "https://aopwiki.org/aops/495"}
+      ]
+    },
+    {
+      "admet_ai_label": "NR-AR-LBD",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Nuclear Receptor Androgen Receptor Ligand Binding Domain agonist assay. Positive = binds to / activates the androgen receptor LBD.",
+      "biological_mechanism": "Androgen receptor ligand binding domain agonism — same molecular initiating event as NR-AR, measured via a truncated LBD construct.",
+      "is_mie_in_aop_wiki": true,
+      "primary_ke_mapping": {
+        "ke_id": 25,
+        "ke_title": "Agonism, Androgen receptor",
+        "ke_url": "https://aopwiki.org/events/25",
+        "biological_level": "Molecular",
+        "match_quality": "High — the LBD assay measures the same MIE as NR-AR (androgen receptor agonism) through the ligand binding pocket.",
+        "aop_ids_where_mie": [23, 376, 496]
+      },
+      "secondary_ke_mappings": [
+        {
+          "ke_id": 785,
+          "ke_title": "Activation, Androgen receptor",
+          "ke_url": "https://aopwiki.org/events/785",
+          "match_quality": "High",
+          "aop_ids_where_mie": [117, 495]
+        }
+      ],
+      "notes": "NR-AR-LBD is a variant assay format of NR-AR; both map to the same KE/MIE in AOP-Wiki. LBD assays are generally more specific to direct ligand binding vs. co-activator recruitment.",
+      "representative_aops": [
+        {"aop_id": 23, "aop_title": "Androgen receptor agonism leading to reproductive dysfunction (in repeat-spawning fish)", "aop_url": "https://aopwiki.org/aops/23"},
+        {"aop_id": 376, "aop_title": "Androgen receptor agonism leading to male-biased sex ratio", "aop_url": "https://aopwiki.org/aops/376"}
+      ]
+    },
+    {
+      "admet_ai_label": "NR-AhR",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Nuclear Receptor Aryl Hydrocarbon Receptor agonist assay. Positive = activates the AhR / aryl hydrocarbon receptor.",
+      "biological_mechanism": "Aryl hydrocarbon receptor (AhR) activation — ligand binding leading to AhR-ARNT dimerisation and downstream CYP1A1 induction and other transcriptional changes.",
+      "is_mie_in_aop_wiki": true,
+      "primary_ke_mapping": {
+        "ke_id": 18,
+        "ke_title": "Activation, AhR",
+        "ke_url": "https://aopwiki.org/events/18",
+        "biological_level": "Molecular",
+        "match_quality": "High — NR-AhR directly measures AhR activation, which is used as MIE in at least 14 AOPs.",
+        "aop_ids_where_mie": [21, 41, 131, 150, 151, 310, 414, 415, 416, 417, 418, 419, 420, 456, 458, 459, 494]
+      },
+      "secondary_ke_mappings": [],
+      "representative_aops": [
+        {"aop_id": 21, "aop_title": "Aryl hydrocarbon receptor activation leading to early life stage mortality, via increased COX-2", "aop_url": "https://aopwiki.org/aops/21"},
+        {"aop_id": 41, "aop_title": "Sustained AhR Activation leading to Rodent Liver Tumours", "aop_url": "https://aopwiki.org/aops/41"},
+        {"aop_id": 131, "aop_title": "Aryl hydrocarbon receptor activation leading to uroporphyria", "aop_url": "https://aopwiki.org/aops/131"},
+        {"aop_id": 150, "aop_title": "Aryl hydrocarbon receptor activation leading to early life stage mortality, via reduced VEGF", "aop_url": "https://aopwiki.org/aops/150"},
+        {"aop_id": 151, "aop_title": "AhR activation leading to preeclampsia", "aop_url": "https://aopwiki.org/aops/151"},
+        {"aop_id": 310, "aop_title": "Embryonic Activation of the AHR leading to Reproductive failure, via epigenetic down-regulation of GnRHR", "aop_url": "https://aopwiki.org/aops/310"},
+        {"aop_id": 458, "aop_title": "AhR activation in the liver leading to Subsequent Adverse Neurodevelopmental Outcomes in Mammals", "aop_url": "https://aopwiki.org/aops/458"},
+        {"aop_id": 459, "aop_title": "AhR activation in the thyroid leading to Subsequent Adverse Neurodevelopmental Outcomes in Mammals", "aop_url": "https://aopwiki.org/aops/459"}
+      ]
+    },
+    {
+      "admet_ai_label": "NR-Aromatase",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Nuclear Receptor Aromatase inhibition assay. Positive = inhibits aromatase (CYP19A1), the enzyme that converts androgens to estrogens.",
+      "biological_mechanism": "Aromatase (CYP19A1) enzyme inhibition — direct binding to and inhibition of the aromatase enzyme, reducing estrogen biosynthesis.",
+      "is_mie_in_aop_wiki": true,
+      "primary_ke_mapping": {
+        "ke_id": 36,
+        "ke_title": "Inhibition, Aromatase",
+        "ke_url": "https://aopwiki.org/events/36",
+        "biological_level": "Molecular",
+        "match_quality": "High — NR-Aromatase positive calls indicate aromatase inhibition, which is the defined MIE in several AOPs. Note: this assay measures INHIBITORS, so positive = inhibitor.",
+        "aop_ids_where_mie": [25, 271, 289, 346]
+      },
+      "secondary_ke_mappings": [
+        {
+          "ke_id": 408,
+          "ke_title": "reduction in ovarian granulosa cells, Aromatase (Cyp19a1)",
+          "ke_url": "https://aopwiki.org/events/408",
+          "match_quality": "Moderate — this KE is the MIE for AOP 7 (cell-level aromatase reduction rather than direct enzymatic inhibition).",
+          "aop_ids_where_mie": [7]
+        }
+      ],
+      "notes": "The Tox21 NR-Aromatase assay measures aromatase INHIBITORS. A positive result corresponds to 'Inhibition, Aromatase' (KE 36). The AOP-Wiki also includes AOPs for aromatase inhibition leading to: reproductive dysfunction in fish (AOP 25), male-biased sex ratio (AOP 346), impaired fecundity in female fish (AOP 289), and impaired fertility (AOP 271).",
+      "representative_aops": [
+        {"aop_id": 25, "aop_title": "Aromatase inhibition leading to reproductive dysfunction", "aop_url": "https://aopwiki.org/aops/25"},
+        {"aop_id": 7, "aop_title": "Aromatase (Cyp19a1) reduction leading to impaired fertility in adult female", "aop_url": "https://aopwiki.org/aops/7"},
+        {"aop_id": 271, "aop_title": "Inhibition of thyroid peroxidase leading to impaired fertility in fish", "aop_url": "https://aopwiki.org/aops/271"},
+        {"aop_id": 346, "aop_title": "Aromatase inhibition leads to male-biased sex ratio via impacts on gonad differentiation", "aop_url": "https://aopwiki.org/aops/346"},
+        {"aop_id": 289, "aop_title": "Inhibition of 5α-reductase leading to impaired fecundity in female fish", "aop_url": "https://aopwiki.org/aops/289"}
+      ]
+    },
+    {
+      "admet_ai_label": "NR-ER",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Nuclear Receptor Estrogen Receptor alpha (full-length) agonist assay. Positive = activates the full-length estrogen receptor alpha.",
+      "biological_mechanism": "Estrogen receptor (ERα) agonism — direct ligand binding and activation of estrogen receptor alpha.",
+      "is_mie_in_aop_wiki": true,
+      "primary_ke_mapping": {
+        "ke_id": 111,
+        "ke_title": "Agonism, Estrogen receptor",
+        "ke_url": "https://aopwiki.org/events/111",
+        "biological_level": "Molecular",
+        "match_quality": "High — NR-ER directly measures estrogen receptor agonism, which is the defined MIE in several reproductive toxicity AOPs.",
+        "aop_ids_where_mie": [29, 52, 53]
+      },
+      "secondary_ke_mappings": [
+        {
+          "ke_id": 1065,
+          "ke_title": "Activation, estrogen receptor alpha",
+          "ke_url": "https://aopwiki.org/events/1065",
+          "match_quality": "High — used as MIE in several carcinogenesis and endocrine disruption AOPs.",
+          "aop_ids_where_mie": [167, 200, 445, 503]
+        },
+        {
+          "ke_id": 1181,
+          "ke_title": "Activation, Estrogen receptor",
+          "ke_url": "https://aopwiki.org/events/1181",
+          "match_quality": "High — used as MIE in AOP 200 (ER activation leading to breast cancer).",
+          "aop_ids_where_mie": [200]
+        },
+        {
+          "ke_id": 1984,
+          "ke_title": "Agonism, Estrogen Receptor alpha",
+          "ke_url": "https://aopwiki.org/events/1984",
+          "match_quality": "High — specific to ERα agonism, MIE in AOP 445 (ERα Agonism leads to Impaired Reproduction).",
+          "aop_ids_where_mie": [445]
+        }
+      ],
+      "representative_aops": [
+        {"aop_id": 29, "aop_title": "Estrogen receptor agonism leading to reproductive dysfunction", "aop_url": "https://aopwiki.org/aops/29"},
+        {"aop_id": 52, "aop_title": "ER agonism leading to skewed sex ratios due to altered sexual differentiation in males", "aop_url": "https://aopwiki.org/aops/52"},
+        {"aop_id": 53, "aop_title": "ER agonism leading to reduced survival due to renal failure", "aop_url": "https://aopwiki.org/aops/53"},
+        {"aop_id": 167, "aop_title": "Early-life estrogen receptor activity leading to endometrial carcinoma in the mouse", "aop_url": "https://aopwiki.org/aops/167"},
+        {"aop_id": 200, "aop_title": "Estrogen receptor activation leading to breast cancer", "aop_url": "https://aopwiki.org/aops/200"},
+        {"aop_id": 445, "aop_title": "Estrogen Receptor Alpha Agonism leads to Impaired Reproduction", "aop_url": "https://aopwiki.org/aops/445"}
+      ]
+    },
+    {
+      "admet_ai_label": "NR-ER-LBD",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Nuclear Receptor Estrogen Receptor Ligand Binding Domain agonist assay. Positive = binds to / activates the estrogen receptor LBD.",
+      "biological_mechanism": "Estrogen receptor alpha ligand binding domain agonism — same MIE as NR-ER, measured via truncated LBD construct.",
+      "is_mie_in_aop_wiki": true,
+      "primary_ke_mapping": {
+        "ke_id": 111,
+        "ke_title": "Agonism, Estrogen receptor",
+        "ke_url": "https://aopwiki.org/events/111",
+        "biological_level": "Molecular",
+        "match_quality": "High — same MIE as NR-ER; LBD assay format measures the same ligand-binding molecular event.",
+        "aop_ids_where_mie": [29, 52, 53]
+      },
+      "secondary_ke_mappings": [
+        {
+          "ke_id": 1065,
+          "ke_title": "Activation, estrogen receptor alpha",
+          "ke_url": "https://aopwiki.org/events/1065",
+          "match_quality": "High",
+          "aop_ids_where_mie": [167, 200, 445, 503]
+        }
+      ],
+      "notes": "NR-ER-LBD is a variant assay format of NR-ER. Both map to the same KE/MIE in AOP-Wiki. LBD assays are generally more specific to direct ligand binding.",
+      "representative_aops": [
+        {"aop_id": 29, "aop_title": "Estrogen receptor agonism leading to reproductive dysfunction", "aop_url": "https://aopwiki.org/aops/29"},
+        {"aop_id": 200, "aop_title": "Estrogen receptor activation leading to breast cancer", "aop_url": "https://aopwiki.org/aops/200"}
+      ]
+    },
+    {
+      "admet_ai_label": "NR-PPAR-gamma",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Nuclear Receptor PPAR-gamma (Peroxisome Proliferator-Activated Receptor gamma) agonist assay. Positive = activates PPAR-gamma.",
+      "biological_mechanism": "Peroxisome proliferator-activated receptor gamma (PPARγ) agonism — direct ligand binding and activation of PPARγ.",
+      "is_mie_in_aop_wiki": true,
+      "primary_ke_mapping": {
+        "ke_id": 1028,
+        "ke_title": "Activation of specific nuclear receptors, PPAR-gamma activation",
+        "ke_url": "https://aopwiki.org/events/1028",
+        "biological_level": "Molecular",
+        "match_quality": "High — NR-PPAR-gamma measures PPAR-gamma activation, which is the MIE in AOPs involving adipogenesis and sarcoma formation.",
+        "aop_ids_where_mie": [72, 163]
+      },
+      "secondary_ke_mappings": [
+        {
+          "ke_id": 228,
+          "ke_title": "peroxisome proliferator activated receptor promoter demethylation",
+          "ke_url": "https://aopwiki.org/events/228",
+          "match_quality": "Low — epigenetic event upstream of PPAR-gamma activation; not the direct MIE measured by the NR-PPAR-gamma assay.",
+          "aop_ids_where_mie": []
+        }
+      ],
+      "representative_aops": [
+        {"aop_id": 163, "aop_title": "PPARgamma activation leading to sarcomas in rats, mice, and hamsters", "aop_url": "https://aopwiki.org/aops/163"},
+        {"aop_id": 72, "aop_title": "Epigenetic modification of PPARG leading to adipogenesis", "aop_url": "https://aopwiki.org/aops/72"}
+      ]
+    },
+    {
+      "admet_ai_label": "SR-ARE",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Stress Response Antioxidant Response Element (ARE / Nrf2-ARE pathway) activation assay. Positive = activates the Nrf2/ARE oxidative stress pathway.",
+      "biological_mechanism": "Nrf2/ARE pathway activation — electrophilic or oxidative stress triggers Nrf2 nuclear translocation and binding to antioxidant response elements, driving cytoprotective gene expression.",
+      "is_mie_in_aop_wiki": false,
+      "aop_wiki_mie_note": "ARE/Nrf2 activation is NOT a primary MIE in AOP-Wiki; it is a downstream stress response KE. The upstream MIEs that cause ARE activation include oxidative stress-inducing chemicals (electrophiles, ROS generators, thiol-reactive agents).",
+      "primary_ke_mapping": {
+        "ke_id": 478,
+        "ke_title": "Activation, NRF2",
+        "ke_url": "https://aopwiki.org/events/478",
+        "biological_level": "Molecular",
+        "match_quality": "Moderate — SR-ARE measures Nrf2/ARE pathway activation; KE 478 represents Nrf2 activation as a downstream KE (typically in response to oxidative stress MIEs).",
+        "aop_ids_where_ke": [61, 213, 232, 420]
+      },
+      "upstream_mie_ke_mappings": [
+        {
+          "ke_id": 1487,
+          "ke_title": "Binding, Thiol/seleno-proteins involved in protection against oxidative stress",
+          "ke_url": "https://aopwiki.org/events/1487",
+          "match_quality": "Moderate — thiol reactivity is a common upstream MIE that activates ARE/Nrf2; used as MIE in AOP 17 and AOP 284.",
+          "aop_ids_where_mie": [17, 284]
+        },
+        {
+          "ke_id": 1417,
+          "ke_title": "NFE2/Nrf2 repression",
+          "ke_url": "https://aopwiki.org/events/1417",
+          "match_quality": "Low — this is the opposite direction (repression) used as MIE in vascular disrupting effect AOPs.",
+          "aop_ids_where_mie": [507, 508, 509, 510]
+        }
+      ],
+      "notes": "The SR-ARE assay is used in Tox21 as a general indicator of electrophilicity and oxidative stress induction. No single AOP-Wiki MIE maps cleanly because SR-ARE positivity can result from multiple upstream MIEs (electrophilic binding, ROS generation, etc.).",
+      "representative_aops": [
+        {"aop_id": 17, "aop_title": "Binding of electrophilic chemicals to SH(thiol)-group of proteins and/or to seleno-proteins involved in protection against oxidative stress during brain development leads to impairment of learning and memory", "aop_url": "https://aopwiki.org/aops/17"},
+        {"aop_id": 284, "aop_title": "Binding of electrophilic chemicals to SH(thiol)-group of proteins and/or to seleno-proteins involved in protection against oxidative stress leads to chronic kidney disease", "aop_url": "https://aopwiki.org/aops/284"},
+        {"aop_id": 507, "aop_title": "Nrf2 inhibition leading to vascular disrupting effects via inflammation pathway", "aop_url": "https://aopwiki.org/aops/507"}
+      ]
+    },
+    {
+      "admet_ai_label": "SR-ATAD5",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Stress Response ATAD5 genotoxicity assay. Positive = induces genotoxic/DNA-damaging stress (ATAD5 is upregulated in response to DNA replication stress and DNA damage).",
+      "biological_mechanism": "DNA damage induction — ATAD5 (a DNA replication factor) is induced by genotoxic stress; SR-ATAD5 is used as a broad genotoxicity/DNA damage biomarker in Tox21.",
+      "is_mie_in_aop_wiki": false,
+      "aop_wiki_mie_note": "ATAD5 itself is not defined as an MIE in AOP-Wiki. The assay detects broad DNA damage; multiple upstream MIEs can be responsible (alkylation, intercalation, strand breaks, etc.).",
+      "primary_ke_mapping": {
+        "ke_id": 1194,
+        "ke_title": "Increase, DNA damage",
+        "ke_url": "https://aopwiki.org/events/1194",
+        "biological_level": "Molecular/Cellular",
+        "match_quality": "Moderate — SR-ATAD5 positivity indicates DNA damage, which KE 1194 represents. However, this is typically a downstream KE, not the MIE.",
+        "aop_ids_where_ke": [200, 293, 294, 432]
+      },
+      "upstream_mie_ke_mappings": [
+        {
+          "ke_id": 97,
+          "ke_title": "Alkylation, DNA",
+          "ke_url": "https://aopwiki.org/events/97",
+          "match_quality": "Moderate — DNA alkylation is a common upstream MIE leading to DNA damage detected by SR-ATAD5.",
+          "aop_ids_where_mie": [15, 139, 322]
+        },
+        {
+          "ke_id": 1879,
+          "ke_title": "Bulky DNA adducts, increase",
+          "ke_url": "https://aopwiki.org/events/1879",
+          "match_quality": "Moderate — bulky DNA adduct formation is an MIE in AOP 397 (Bulky DNA adducts leading to mutations).",
+          "aop_ids_where_mie": [397]
+        },
+        {
+          "ke_id": 1686,
+          "ke_title": "Deposition of Energy",
+          "ke_url": "https://aopwiki.org/events/1686",
+          "match_quality": "Low — ionizing radiation MIE relevant to radiation-induced DNA damage contexts.",
+          "aop_ids_where_mie": [216, 238, 272, 299, 311, 432]
+        }
+      ],
+      "notes": "SR-ATAD5 is a broad genotoxicity flag used in Tox21 risk profiling. There is no single AOP-Wiki MIE that cleanly maps to it. It is best interpreted as evidence of one of several DNA-damage MIEs (alkylation, intercalation, strand breakage, oxidative DNA damage).",
+      "representative_aops": [
+        {"aop_id": 15, "aop_title": "Alkylation of DNA in male pre-meiotic germ cells leading to heritable mutations", "aop_url": "https://aopwiki.org/aops/15"},
+        {"aop_id": 139, "aop_title": "Alkylation of DNA leading to cancer 1", "aop_url": "https://aopwiki.org/aops/139"},
+        {"aop_id": 322, "aop_title": "Alkylation of DNA leading to reduced sperm count", "aop_url": "https://aopwiki.org/aops/322"},
+        {"aop_id": 397, "aop_title": "Bulky DNA adducts leading to mutations", "aop_url": "https://aopwiki.org/aops/397"}
+      ]
+    },
+    {
+      "admet_ai_label": "SR-HSE",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Stress Response Heat Shock Element (HSE) activation assay. Positive = induces the heat shock response (HSF1 activation and HSP upregulation via heat shock elements).",
+      "biological_mechanism": "Heat shock response / proteotoxic stress — protein denaturation or unfolded protein accumulation activates heat shock factor 1 (HSF1), driving HSP70/HSP90 expression via HSE motifs.",
+      "is_mie_in_aop_wiki": false,
+      "aop_wiki_mie_note": "Heat shock element activation is not defined as an MIE in the AOP-Wiki. The pathway represents a cellular proteotoxic stress response; upstream MIEs include protein-reactive chemicals, mitochondrial toxicants, and general cytotoxins.",
+      "primary_ke_mapping": {
+        "ke_id": 1512,
+        "ke_title": "Unfolded Protein Response",
+        "ke_url": "https://aopwiki.org/events/1512",
+        "biological_level": "Cellular",
+        "match_quality": "Low-Moderate — the unfolded protein response (ER stress) and the heat shock response are distinct but related proteostasis pathways. SR-HSE positivity may co-occur with UPR activation.",
+        "aop_ids_where_ke": [260, 273, 285]
+      },
+      "upstream_mie_ke_mappings": [
+        {
+          "ke_id": 244,
+          "ke_title": "Alkylation, Protein",
+          "ke_url": "https://aopwiki.org/events/244",
+          "match_quality": "Low-Moderate — covalent protein modification can trigger heat shock response; used as MIE in AOP 38 (Protein Alkylation leading to Liver Fibrosis).",
+          "aop_ids_where_mie": [38, 258]
+        },
+        {
+          "ke_id": 209,
+          "ke_title": "Peptide Oxidation",
+          "ke_url": "https://aopwiki.org/events/209",
+          "match_quality": "Low — oxidative protein damage can activate heat shock response.",
+          "aop_ids_where_mie": []
+        }
+      ],
+      "notes": "SR-HSE is a general proteotoxic stress indicator. No single AOP-Wiki MIE maps well to it. Chemicals that are positive in SR-HSE are often reactive species that damage or denature proteins. There is no dedicated 'Heat Shock Response' AOP in AOP-Wiki at time of writing.",
+      "representative_aops": [
+        {"aop_id": 38, "aop_title": "Protein Alkylation leading to Liver Fibrosis", "aop_url": "https://aopwiki.org/aops/38"},
+        {"aop_id": 258, "aop_title": "Renal protein alkylation leading to kidney toxicity", "aop_url": "https://aopwiki.org/aops/258"}
+      ]
+    },
+    {
+      "admet_ai_label": "SR-MMP",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Stress Response Mitochondrial Membrane Potential disruption assay. Positive = disrupts mitochondrial membrane potential (ΔΨm).",
+      "biological_mechanism": "Mitochondrial membrane potential disruption — depolarization of the inner mitochondrial membrane, indicating mitochondrial toxicity (uncoupling, ETC inhibition, MPT pore opening).",
+      "is_mie_in_aop_wiki": false,
+      "aop_wiki_mie_note": "Disruption of mitochondrial membrane potential is a downstream KE, not an MIE, in AOP-Wiki. Upstream MIEs that cause MMP disruption include inhibition of ETC complexes, uncouplers, and mitochondrial reactive compound binding.",
+      "primary_ke_mapping": {
+        "ke_id": 1770,
+        "ke_title": "Decrease, Mitochondrial membrane potential",
+        "ke_url": "https://aopwiki.org/events/1770",
+        "biological_level": "Cellular",
+        "match_quality": "High for KE matching — SR-MMP directly measures this KE. However it is a downstream KE in AOP-Wiki, not an MIE.",
+        "aop_ids_where_ke": [299, 311, 387, 447, 480]
+      },
+      "secondary_ke_mappings": [
+        {
+          "ke_id": 177,
+          "ke_title": "N/A, Mitochondrial dysfunction 1",
+          "ke_url": "https://aopwiki.org/events/177",
+          "match_quality": "Moderate — general mitochondrial dysfunction KE used across many AOPs.",
+          "aop_ids_where_ke": [3, 12, 13, 48, 77, 78, 79, 80, 87, 88, 89, 90, 144, 178, 200]
+        }
+      ],
+      "upstream_mie_ke_mappings": [
+        {
+          "ke_id": 105,
+          "ke_title": "Inhibition, Mitochondrial Electron Transport Chain Complexes",
+          "ke_url": "https://aopwiki.org/events/105",
+          "match_quality": "High — ETC inhibition is an upstream MIE that directly causes MMP disruption; used as MIE in AOPs 437, 447, 479, 480.",
+          "aop_ids_where_mie": [437, 447, 479, 480]
+        },
+        {
+          "ke_id": 888,
+          "ke_title": "Binding of inhibitor, NADH-ubiquinone oxidoreductase (complex I)",
+          "ke_url": "https://aopwiki.org/events/888",
+          "match_quality": "High — Complex I binding is an MIE in AOP 3 (parkinsonian motor deficits) and AOP 273/276.",
+          "aop_ids_where_mie": [3, 273, 276]
+        },
+        {
+          "ke_id": 1446,
+          "ke_title": "Increase, Uncoupling of oxidative phosphorylation",
+          "ke_url": "https://aopwiki.org/events/1446",
+          "match_quality": "Moderate — uncoupling agents directly disrupt MMP; used as MIE-proximal KE in multiple AOPs.",
+          "aop_ids_where_mie": []
+        }
+      ],
+      "notes": "SR-MMP positive hits span multiple upstream MIE classes: ETC inhibitors (rotenone-like), uncouplers (FCCP-like), and redox-cycling agents. The best upstream MIE in AOP-Wiki for SR-MMP-positive chemicals is 'Inhibition, Mitochondrial Electron Transport Chain Complexes' (KE 105).",
+      "representative_aops": [
+        {"aop_id": 3, "aop_title": "Inhibition of the mitochondrial complex I of nigro-striatal neurons leads to parkinsonian motor deficits", "aop_url": "https://aopwiki.org/aops/3"},
+        {"aop_id": 273, "aop_title": "Mitochondrial complex inhibition leading to liver injury", "aop_url": "https://aopwiki.org/aops/273"},
+        {"aop_id": 276, "aop_title": "Inhibition of complex I of the electron transport chain leading to chemical induced Fanconi syndrome", "aop_url": "https://aopwiki.org/aops/276"},
+        {"aop_id": 437, "aop_title": "Inhibition of mitochondrial electron transport chain (ETC) complexes leading to kidney toxicity", "aop_url": "https://aopwiki.org/aops/437"},
+        {"aop_id": 479, "aop_title": "Mitochondrial complexes inhibition leading to heart failure via increased myocardial oxidative stress", "aop_url": "https://aopwiki.org/aops/479"},
+        {"aop_id": 480, "aop_title": "Mitochondrial complexes inhibition leading to heart failure via decrease in cardiac contractility", "aop_url": "https://aopwiki.org/aops/480"}
+      ]
+    },
+    {
+      "admet_ai_label": "SR-p53",
+      "admet_ai_dataset_type": "classification",
+      "assay_description": "Tox21 Stress Response p53 pathway activation assay. Positive = activates the p53 tumour suppressor pathway (DNA damage, replication stress, or other genotoxic events).",
+      "biological_mechanism": "p53 pathway activation — stabilization and activation of TP53 in response to DNA strand breaks, nucleotide depletion, oxidative DNA damage, or replication stress.",
+      "is_mie_in_aop_wiki": false,
+      "aop_wiki_mie_note": "p53 pathway activation is a downstream stress-response KE in AOP-Wiki, not an MIE. The upstream MIEs causing p53 activation include DNA alkylation, deposition of ionizing energy, bulky adduct formation, and other forms of genotoxicity.",
+      "primary_ke_mapping": {
+        "ke_id": 1974,
+        "ke_title": "Activation of Tumor Protein 53",
+        "ke_url": "https://aopwiki.org/events/1974",
+        "biological_level": "Molecular",
+        "match_quality": "High for KE matching — SR-p53 directly measures this KE. However, it is a downstream KE in AOP-Wiki (used as KE in AOP 419 and AOP 441), not an MIE.",
+        "aop_ids_where_ke": [419, 441]
+      },
+      "secondary_ke_mappings": [
+        {
+          "ke_id": 1923,
+          "ke_title": "Altered gene expression, P53 dependent apoptosis pathway",
+          "ke_url": "https://aopwiki.org/events/1923",
+          "match_quality": "Moderate — this KE represents downstream P53-dependent gene expression changes in AOP 419 (AhR activation leading to decreased lung function via P53 pathway).",
+          "aop_ids_where_ke": [419]
+        }
+      ],
+      "upstream_mie_ke_mappings": [
+        {
+          "ke_id": 97,
+          "ke_title": "Alkylation, DNA",
+          "ke_url": "https://aopwiki.org/events/97",
+          "match_quality": "High — DNA alkylation is a primary MIE that activates p53 pathway; used as MIE in AOPs 15, 139, 322.",
+          "aop_ids_where_mie": [15, 139, 322]
+        },
+        {
+          "ke_id": 1686,
+          "ke_title": "Deposition of Energy",
+          "ke_url": "https://aopwiki.org/events/1686",
+          "match_quality": "High — ionizing radiation MIE leading to DNA strand breaks and p53 activation; used as MIE in AOPs 272, 432, 441, 478, 482, 483.",
+          "aop_ids_where_mie": [272, 432, 441, 478, 482, 483]
+        },
+        {
+          "ke_id": 1879,
+          "ke_title": "Bulky DNA adducts, increase",
+          "ke_url": "https://aopwiki.org/events/1879",
+          "match_quality": "Moderate — bulky adducts trigger NER and p53 activation; MIE in AOP 397.",
+          "aop_ids_where_mie": [397]
+        },
+        {
+          "ke_id": 18,
+          "ke_title": "Activation, AhR",
+          "ke_url": "https://aopwiki.org/events/18",
+          "match_quality": "Low-Moderate — AhR activation can lead to p53 pathway activation in specific AOPs (e.g., AOP 419: AhR decreasing lung function via P53 pathway).",
+          "aop_ids_where_mie_relevant_to_sr_p53": [419]
+        }
+      ],
+      "notes": "SR-p53 is a broad genotoxicity and DNA-damage indicator in Tox21. Like SR-ATAD5, there is no single AOP-Wiki MIE that maps to it uniquely. It is best interpreted as evidence of one of several DNA-damaging MIEs.",
+      "representative_aops": [
+        {"aop_id": 15, "aop_title": "Alkylation of DNA in male pre-meiotic germ cells leading to heritable mutations", "aop_url": "https://aopwiki.org/aops/15"},
+        {"aop_id": 272, "aop_title": "Deposition of energy leading to lung cancer", "aop_url": "https://aopwiki.org/aops/272"},
+        {"aop_id": 397, "aop_title": "Bulky DNA adducts leading to mutations", "aop_url": "https://aopwiki.org/aops/397"},
+        {"aop_id": 419, "aop_title": "Aryl hydrocarbon receptor activation leading to impaired lung function through P53 toxicity pathway", "aop_url": "https://aopwiki.org/aops/419"},
+        {"aop_id": 441, "aop_title": "Ionizing radiation-induced DNA damage leads to microcephaly via apoptosis and premature cell differentiation", "aop_url": "https://aopwiki.org/aops/441"}
+      ]
+    }
+  ],
+  "summary_table": {
+    "description": "Quick-reference: ADMET-AI label → primary AOP-Wiki KE ID and title",
+    "entries": [
+      {"admet_ai_label": "NR-AR",        "is_direct_mie": true,  "primary_ke_id": 25,   "primary_ke_title": "Agonism, Androgen receptor",                                          "ke_url": "https://aopwiki.org/events/25"},
+      {"admet_ai_label": "NR-AR-LBD",    "is_direct_mie": true,  "primary_ke_id": 25,   "primary_ke_title": "Agonism, Androgen receptor",                                          "ke_url": "https://aopwiki.org/events/25"},
+      {"admet_ai_label": "NR-AhR",       "is_direct_mie": true,  "primary_ke_id": 18,   "primary_ke_title": "Activation, AhR",                                                     "ke_url": "https://aopwiki.org/events/18"},
+      {"admet_ai_label": "NR-Aromatase", "is_direct_mie": true,  "primary_ke_id": 36,   "primary_ke_title": "Inhibition, Aromatase",                                               "ke_url": "https://aopwiki.org/events/36"},
+      {"admet_ai_label": "NR-ER",        "is_direct_mie": true,  "primary_ke_id": 111,  "primary_ke_title": "Agonism, Estrogen receptor",                                          "ke_url": "https://aopwiki.org/events/111"},
+      {"admet_ai_label": "NR-ER-LBD",    "is_direct_mie": true,  "primary_ke_id": 111,  "primary_ke_title": "Agonism, Estrogen receptor",                                          "ke_url": "https://aopwiki.org/events/111"},
+      {"admet_ai_label": "NR-PPAR-gamma","is_direct_mie": true,  "primary_ke_id": 1028, "primary_ke_title": "Activation of specific nuclear receptors, PPAR-gamma activation",    "ke_url": "https://aopwiki.org/events/1028"},
+      {"admet_ai_label": "SR-ARE",       "is_direct_mie": false, "primary_ke_id": 478,  "primary_ke_title": "Activation, NRF2  [downstream KE; upstream MIE: KE 1487]",           "ke_url": "https://aopwiki.org/events/478"},
+      {"admet_ai_label": "SR-ATAD5",     "is_direct_mie": false, "primary_ke_id": 1194, "primary_ke_title": "Increase, DNA damage  [downstream KE; upstream MIE: KE 97]",         "ke_url": "https://aopwiki.org/events/1194"},
+      {"admet_ai_label": "SR-HSE",       "is_direct_mie": false, "primary_ke_id": 1512, "primary_ke_title": "Unfolded Protein Response  [downstream KE; no clean upstream MIE]",  "ke_url": "https://aopwiki.org/events/1512"},
+      {"admet_ai_label": "SR-MMP",       "is_direct_mie": false, "primary_ke_id": 1770, "primary_ke_title": "Decrease, Mitochondrial membrane potential  [downstream KE; upstream MIE: KE 105]", "ke_url": "https://aopwiki.org/events/1770"},
+      {"admet_ai_label": "SR-p53",       "is_direct_mie": false, "primary_ke_id": 1974, "primary_ke_title": "Activation of Tumor Protein 53  [downstream KE; upstream MIE: KE 97]","ke_url": "https://aopwiki.org/events/1974"}
+    ]
+  }
+}

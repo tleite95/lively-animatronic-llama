@@ -7,6 +7,36 @@
       "skillPath": "skills/chembl_database/SKILL.md",
       "computedHash": "03c09a44af402741b381b3d449c6d499b50d88648df44d69bef07cb2e22f1068"
     },
+<<<<<<< HEAD
+    "cheminformatics": {
+      "source": "itallstartedwithaidea/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/scientific-research/cheminformatics/SKILL.md",
+      "computedHash": "9f96c04e34871585f1dbbb3ad4e41d32b709a4318aa350fcc9ba52d70c4fbc7e"
+    },
+    "paper-analysis": {
+      "source": "/home/avam11/lively-animatronic-llama/.agents/skills/paper_analysis",
+      "sourceType": "local",
+      "computedHash": "2ae0ebcb77b135fb8940ed4fa34115a48c10770a77490c1c91035c5bbf665563"
+    },
+    "pdf": {
+      "source": "openai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/.curated/pdf/SKILL.md",
+      "computedHash": "ae0a8fde8447e83a08edd0baf5373cd52febce32494e47e17d5d695a441a1884"
+    },
+    "pubchem-database": {
+      "source": "google-deepmind/science-skills",
+      "sourceType": "github",
+      "skillPath": "skills/pubchem_database/SKILL.md",
+      "computedHash": "8dc3a33c47179914d9c766821787cb7a4bcc3b8c3ff5190100d94cca125d0ad3"
+    },
+    "rdkit": {
+      "source": "k-dense-ai/claude-scientific-skills",
+      "sourceType": "github",
+      "skillPath": "skills/rdkit/SKILL.md",
+      "computedHash": "5de60212614e3577ff61ec21150462e17f49625015acefac67f76bb724e153b0"
+=======
     "deepchem": {
       "source": "k-dense-ai/claude-scientific-skills",
       "sourceType": "github",
@@ -66,6 +96,7 @@
       "sourceType": "github",
       "skillPath": "product-management/skills/synthesize-research/SKILL.md",
       "computedHash": "7921117657f8fc73856c5e518c464463cb94b86581d33b528a3f6be262fa42dc"
+>>>>>>> brl/main
     }
   }
 }

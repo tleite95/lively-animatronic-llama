@@ -1,0 +1,55 @@
+{
+  "mode": "scored_records",
+  "results": [
+    {
+      "family_scores": {
+        "systemic_exposure": {
+          "bucket": "exposure_modifiers",
+          "summary": "Higher scores mean the compound is more likely to be absorbed and reach systemic circulation.",
+          "score": null,
+          "level": "unknown",
+          "evidence": []
+        },
+        "persistence_distribution": {
+          "bucket": "exposure_modifiers",
+          "summary": "Higher scores mean longer residence time and broader tissue distribution.",
+          "score": null,
+          "level": "unknown",
+          "evidence": []
+        },
+        "broad_toxicity": {
+          "bucket": "liability_phenotypes",
+          "summary": "Higher scores mean stronger broad toxicity concern even without a clean single-event mapping.",
+          "score": null,
+          "level": "unknown",
+          "evidence": []
+        },
+        "metabolic_interaction": {
+          "bucket": "liability_phenotypes",
+          "summary": "Higher scores mean more CYP-mediated interaction or metabolism dependence.",
+          "score": null,
+          "level": "unknown",
+          "evidence": []
+        },
+        "druglikeness_caution": {
+          "bucket": "chemistry_quality",
+          "summary": "Higher scores mean the chemistry looks less clean or less drug-like, so treat downstream mapping with more caution.",
+          "score": null,
+          "level": "unknown",
+          "evidence": []
+        }
+      },
+      "bucket_scores": {},
+      "annotations": {
+        "exposure_flags": [],
+        "organ_bias": [],
+        "supporting_evidence": []
+      },
+      "excluded_keys_present": [],
+      "ignored_keys_present": [],
+      "unmapped_keys_present": [
+        "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O"
+      ]
+    }
+  ]
+}

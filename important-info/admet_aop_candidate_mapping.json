@@ -1,0 +1,167 @@
+[
+  {
+    "key": "hERG",
+    "target_type": "MIE/KE",
+    "mapped_event": "cardiac hERG channel blockade / QT prolongation liability",
+    "actual_event_id": 2099,
+    "actual_event_title": "hERG channel blockade",
+    "match_type": "direct",
+    "confidence": 0.96,
+    "risk_definition": "Use predicted hERG probability directly as the default risk. Auxiliary fields only increase confidence that the liability is exposure-relevant in vivo.",
+    "combine_with": [
+      "logP",
+      "BBB_Martins"
+    ],
+    "combine_logic": {
+      "when_to_use": "Use this only if logP and/or BBB_Martins are available; otherwise use risk = p_hERG.",
+      "type": "weighted_sum",
+      "formula": "clamp01(0.85*p_hERG + 0.10*logP_ge_3 + 0.05*p_BBB_Martins)",
+      "component_definitions": {
+        "p_hERG": "ADMET-AI hERG probability in [0,1]",
+        "logP_ge_3": "1.0 if logP >= 3; 0.5 if 2 <= logP < 3; 0.0 if logP < 2",
+        "p_BBB_Martins": "ADMET-AI BBB_Martins probability in [0,1]"
+      },
+      "interpretation": "hERG is the main signal. logP and BBB_Martins are minor exposure modifiers that can raise confidence but should not dominate the score."
+    },
+    "notes": "One of the cleanest direct toxicity signals in the set."
+  },
+  {
+    "key": "AMES",
+    "target_type": "MIE/KE",
+    "mapped_event": "DNA reactivity / genotoxicity",
+    "actual_event_id": 1669,
+    "actual_event_title": "Increased, DNA damage and mutation",
+    "match_type": "direct",
+    "confidence": 0.96,
+    "risk_definition": "Use predicted AMES probability directly as the default risk. Structural alerts and carcinogenicity can be added as supporting evidence.",
+    "combine_with": [
+      "Carcinogens_Lagunin",
+      "PAINS_alert",
+      "BRENK_alert",
+      "NIH_alert"
+    ],
+    "combine_logic": {
+      "when_to_use": "Use this when you want a slightly more robust genotoxicity score than AMES alone.",
+      "type": "weighted_sum",
+      "formula": "clamp01(0.70*p_AMES + 0.20*p_Carcinogens_Lagunin + 0.10*max(alert_PAINS, alert_BRENK, alert_NIH))",
+      "component_definitions": {
+        "p_AMES": "ADMET-AI AMES probability in [0,1]",
+        "p_Carcinogens_Lagunin": "ADMET-AI carcinogenicity probability in [0,1]",
+        "alert_PAINS": "1.0 if PAINS_alert is positive, else 0.0",
+        "alert_BRENK": "1.0 if BRENK_alert is positive, else 0.0",
+        "alert_NIH": "1.0 if NIH_alert is positive, else 0.0"
+      },
+      "interpretation": "AMES remains the anchor signal. Carcinogens_Lagunin adds downstream support, and the alert bundle adds a small boost without double-counting multiple correlated alerts."
+    },
+    "notes": "Strong proxy for genotoxic initiating events."
+  },
+  {
+    "key": "Carcinogens_Lagunin",
+    "target_type": "KE",
+    "mapped_event": "carcinogenicity / tumor-initiating liability",
+    "actual_event_id": 185,
+    "actual_event_title": "Increase, Mutations",
+    "match_type": "downstream_proxy",
+    "confidence": 0.93,
+    "risk_definition": "Use predicted carcinogenicity probability directly as the default risk. Pair with AMES if you want a more specific mutagenic-carcinogenicity readout.",
+    "combine_with": [
+      "AMES"
+    ],
+    "combine_logic": {
+      "when_to_use": "Use this when carcinogenicity is the primary endpoint and you want AMES to strengthen confidence in mutation-linked mechanisms.",
+      "type": "weighted_sum",
+      "formula": "clamp01(0.60*p_Carcinogens_Lagunin + 0.40*p_AMES)",
+      "component_definitions": {
+        "p_Carcinogens_Lagunin": "ADMET-AI carcinogenicity probability in [0,1]",
+        "p_AMES": "ADMET-AI AMES probability in [0,1]"
+      },
+      "interpretation": "Carcinogens_Lagunin is the main downstream hazard signal; AMES strengthens the case that the carcinogenicity is mutation-associated."
+    },
+    "notes": "Use as a genotox/carcinogenicity proxy; best paired with AMES."
+  },
+  {
+    "key": "DILI",
+    "target_type": "KE",
+    "mapped_event": "drug-induced liver injury / hepatotoxicity liability",
+    "actual_event_id": 1393,
+    "actual_event_title": "Hepatocytotoxicity",
+    "match_type": "direct",
+    "confidence": 0.91,
+    "risk_definition": "Use predicted DILI probability directly as the default risk. Add exposure and disposition modifiers if you want a more conservative liver-liability score.",
+    "combine_with": [
+      "Clearance_Hepatocyte_AZ",
+      "Clearance_Microsome_AZ",
+      "PPBR_AZ",
+      "Solubility_AqSolDB",
+      "logP"
+    ],
+    "combine_logic": {
+      "when_to_use": "Use this when you want a simple liver-risk composite that accounts for persistence, binding, and poor solubility.",
+      "type": "weighted_sum",
+      "formula": "clamp01(0.55*p_DILI + 0.15*low_clearance_flag + 0.10*high_PPBR_flag + 0.10*low_solubility_flag + 0.10*logP_ge_3)",
+      "component_definitions": {
+        "p_DILI": "ADMET-AI DILI probability in [0,1]",
+        "low_clearance_flag": "1.0 if both Clearance_Hepatocyte_AZ and Clearance_Microsome_AZ fall in the bottom 25% of your screened chemical set; 0.5 if only one does; 0.0 otherwise",
+        "high_PPBR_flag": "1.0 if PPBR_AZ >= 90; 0.5 if 75 <= PPBR_AZ < 90; 0.0 if PPBR_AZ < 75",
+        "low_solubility_flag": "1.0 if Solubility_AqSolDB <= -4; 0.5 if -4 < Solubility_AqSolDB <= -2; 0.0 if Solubility_AqSolDB > -2",
+        "logP_ge_3": "1.0 if logP >= 3; 0.5 if 2 <= logP < 3; 0.0 if logP < 2"
+      },
+      "interpretation": "DILI is the anchor. Low clearance, high protein binding, low solubility, and high logP each add modest support for liver accumulation or persistence."
+    },
+    "notes": "Best treated as a composite liver-risk gate."
+  },
+  {
+    "key": "Skin_Reaction",
+    "target_type": "MIE/KE",
+    "mapped_event": "skin sensitization / skin reaction liability",
+    "actual_event_id": 827,
+    "actual_event_title": "sensitisation, skin",
+    "match_type": "direct",
+    "confidence": 0.9,
+    "risk_definition": "Use predicted skin-reaction probability directly as the default risk. Structural alerts can be used as a small reactivity boost.",
+    "combine_with": [
+      "PAINS_alert",
+      "BRENK_alert",
+      "NIH_alert"
+    ],
+    "combine_logic": {
+      "when_to_use": "Use this when you want to reinforce skin-reaction liability with simple reactive-chemistry alerts.",
+      "type": "weighted_sum",
+      "formula": "clamp01(0.75*p_Skin_Reaction + 0.25*max(alert_PAINS, alert_BRENK, alert_NIH))",
+      "component_definitions": {
+        "p_Skin_Reaction": "ADMET-AI Skin_Reaction probability in [0,1]",
+        "alert_PAINS": "1.0 if PAINS_alert is positive, else 0.0",
+        "alert_BRENK": "1.0 if BRENK_alert is positive, else 0.0",
+        "alert_NIH": "1.0 if NIH_alert is positive, else 0.0"
+      },
+      "interpretation": "Skin_Reaction is the main signal. The alert bundle adds a modest boost for electrophilic or otherwise reactive chemotypes linked to sensitization."
+    },
+    "notes": "Good direct proxy for reactive chemistry linked to skin endpoints."
+  },
+  {
+    "key": "BBB_Martins",
+    "target_type": "KE",
+    "mapped_event": "blood-brain barrier permeability / CNS exposure gate",
+    "actual_event_id": 1874,
+    "actual_event_title": "blood brain barrier disruption",
+    "match_type": "direct",
+    "confidence": 0.84,
+    "risk_definition": "Treat BBB_Martins as a CNS exposure modifier rather than a standalone hazard endpoint.",
+    "combine_with": [
+      "Pgp_Broccatelli",
+      "Caco2_Wang"
+    ],
+    "combine_logic": {
+      "when_to_use": "Use this when screening for chemicals more likely to reach the CNS and therefore be plausible candidates for neuro-related AOP events.",
+      "type": "weighted_sum",
+      "formula": "clamp01(0.60*p_BBB_Martins + 0.25*(1 - p_Pgp_Broccatelli) + 0.15*high_Caco2_flag)",
+      "component_definitions": {
+        "p_BBB_Martins": "ADMET-AI BBB_Martins probability in [0,1]",
+        "p_Pgp_Broccatelli": "ADMET-AI Pgp_Broccatelli probability in [0,1]; higher values imply stronger efflux and therefore lower CNS exposure",
+        "high_Caco2_flag": "1.0 if Caco2_Wang falls in the top 25% of your screened chemical set; 0.5 if in the 50th-75th percentile; 0.0 otherwise"
+      },
+      "interpretation": "BBB_Martins is the anchor for CNS exposure. Lower P-gp efflux and higher intestinal permeability increase confidence that the compound can achieve systemic and brain exposure."
+    },
+    "notes": "Best used as a modifier for CNS-linked AOPs, not as a standalone hazard endpoint."
+  }
+]

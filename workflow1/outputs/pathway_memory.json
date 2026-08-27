@@ -1,0 +1,301 @@
+[
+  {
+    "chemical": "aspirin",
+    "signature": "cox 1 inhibition > decreased prostaglandin synthesis > decreased gastric mucus production > gastrointestinal ulceration",
+    "tokens": [
+      "1",
+      "cox",
+      "decreased",
+      "gastric",
+      "gastrointestinal",
+      "inhibition",
+      "mucus",
+      "production",
+      "prostaglandin",
+      "synthesis",
+      "ulceration"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.9060719135812617,
+    "termination_reason": "The pathway has reached a terminal Adverse Outcome (AO) that aligns with the target profile's liability for gastrointestinal toxicity.",
+    "timestamp": 1787756521.5677857
+  },
+  {
+    "chemical": "penicillin",
+    "signature": "haptenization of endogenous proteins > activation of t cells > production of ige antibodies > mast cell degranulation > anaphylaxis",
+    "tokens": [
+      "activation",
+      "anaphylaxis",
+      "antibodies",
+      "cell",
+      "cells",
+      "degranulation",
+      "endogenous",
+      "haptenization",
+      "ige",
+      "mast",
+      "production",
+      "proteins",
+      "t"
+    ],
+    "length": 5,
+    "final_ao": true,
+    "confidence_score": 0.8553092324003744,
+    "termination_reason": "The pathway has reached the terminal adverse outcome (Anaphylaxis) following a complete and scientifically sound sequence of key events for penicillin-induced hypersensitivity.",
+    "timestamp": 1787756845.2142134
+  },
+  {
+    "chemical": "daridorexant",
+    "signature": "cyp3a4 inhibition > altered drug metabolism > increased systemic exposure of co administered cyp3a4 substrates > drug drug interaction toxicity",
+    "tokens": [
+      "administered",
+      "altered",
+      "co",
+      "cyp3a4",
+      "drug",
+      "exposure",
+      "increased",
+      "inhibition",
+      "interaction",
+      "metabolism",
+      "substrates",
+      "systemic",
+      "toxicity"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.7322851463090614,
+    "termination_reason": "The pathway has progressed from the MIE (CYP3A4 inhibition) through the necessary Key Events (altered metabolism and increased systemic exposure) to a logical Adverse Outcome (Drug-drug interaction toxicity).",
+    "timestamp": 1787757027.7507358
+  },
+  {
+    "chemical": "toluene",
+    "signature": "membrane disruption > increased permeability of the blood brain barrier > neuronal dysfunction > neurotoxicity",
+    "tokens": [
+      "barrier",
+      "blood",
+      "brain",
+      "disruption",
+      "dysfunction",
+      "increased",
+      "membrane",
+      "neuronal",
+      "neurotoxicity",
+      "permeability"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.8246707282834398,
+    "termination_reason": "The pathway has progressed from MIE through key events to the target liability 'neurotoxicity' as specified in the target profile.",
+    "timestamp": 1787760738.5160148
+  },
+  {
+    "chemical": "aspirin",
+    "signature": "cox 1 inhibition > decreased prostaglandin synthesis > gastric ulceration",
+    "tokens": [
+      "1",
+      "cox",
+      "decreased",
+      "gastric",
+      "inhibition",
+      "prostaglandin",
+      "synthesis",
+      "ulceration"
+    ],
+    "length": 3,
+    "final_ao": true,
+    "confidence_score": 0.8844136996277563,
+    "termination_reason": "A terminal Adverse Outcome (Gastric Ulceration) has been reached and is strongly supported by the MIE (COX-1 Inhibition) and the target profile liability (gastrointestinal_toxicity).",
+    "timestamp": 1787761522.2819688
+  },
+  {
+    "chemical": "aspirin",
+    "signature": "cox 1 inhibition > decreased prostaglandin synthesis > decreased gastric mucosal prostaglandins > gastric ulceration",
+    "tokens": [
+      "1",
+      "cox",
+      "decreased",
+      "gastric",
+      "inhibition",
+      "mucosal",
+      "prostaglandin",
+      "prostaglandins",
+      "synthesis",
+      "ulceration"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.850272634317147,
+    "termination_reason": "The pathway has reached the terminal Adverse Outcome (Gastric Ulceration) supported by the target profile liability (gastrointestinal_toxicity) and expert candidate reasoning.",
+    "timestamp": 1787762108.5100925
+  },
+  {
+    "chemical": "aspirin",
+    "signature": "cox 1 inhibition > decreased prostaglandin synthesis > decreased gastric mucosal prostaglandins > gastric ulceration",
+    "tokens": [
+      "1",
+      "cox",
+      "decreased",
+      "gastric",
+      "inhibition",
+      "mucosal",
+      "prostaglandin",
+      "prostaglandins",
+      "synthesis",
+      "ulceration"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.8302726343171469,
+    "termination_reason": "The pathway has reached the terminal Adverse Outcome (Gastric Ulceration) supported by the target profile liability (gastrointestinal_toxicity) and expert candidate reasoning.",
+    "timestamp": 1787762242.9326038
+  },
+  {
+    "chemical": "aspirin",
+    "signature": "cox 1 inhibition > decreased prostaglandin synthesis > decreased gastric mucosal prostaglandins > gastric ulceration",
+    "tokens": [
+      "1",
+      "cox",
+      "decreased",
+      "gastric",
+      "inhibition",
+      "mucosal",
+      "prostaglandin",
+      "prostaglandins",
+      "synthesis",
+      "ulceration"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.8302726343171469,
+    "termination_reason": "The pathway has reached the terminal Adverse Outcome (Gastric Ulceration) supported by the target profile liability (gastrointestinal_toxicity) and expert candidate reasoning.",
+    "timestamp": 1787762456.8262744
+  },
+  {
+    "chemical": "aspirin",
+    "signature": "cox 1 inhibition > decreased prostaglandin synthesis > decreased gastric mucosal prostaglandins > gastric ulceration",
+    "tokens": [
+      "1",
+      "cox",
+      "decreased",
+      "gastric",
+      "inhibition",
+      "mucosal",
+      "prostaglandin",
+      "prostaglandins",
+      "synthesis",
+      "ulceration"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.8302726343171469,
+    "termination_reason": "The pathway has reached the terminal Adverse Outcome (Gastric Ulceration) supported by the target profile liability (gastrointestinal_toxicity) and expert candidate reasoning.",
+    "timestamp": 1787762830.442976
+  },
+  {
+    "chemical": "aspirin",
+    "signature": "cox 1 inhibition > decreased prostaglandin synthesis > decreased gastric mucosal prostaglandins > gastric ulceration",
+    "tokens": [
+      "1",
+      "cox",
+      "decreased",
+      "gastric",
+      "inhibition",
+      "mucosal",
+      "prostaglandin",
+      "prostaglandins",
+      "synthesis",
+      "ulceration"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.8302726343171469,
+    "termination_reason": "The pathway has reached the terminal Adverse Outcome (Gastric Ulceration) supported by the target profile liability (gastrointestinal_toxicity) and expert candidate reasoning.",
+    "timestamp": 1787763385.3480628
+  },
+  {
+    "chemical": "paracetemol",
+    "signature": "covalent binding to hepatic proteins > mitochondrial dysfunction > oxidative stress > hepatocyte necrosis",
+    "tokens": [
+      "binding",
+      "covalent",
+      "dysfunction",
+      "hepatic",
+      "hepatocyte",
+      "mitochondrial",
+      "necrosis",
+      "oxidative",
+      "proteins",
+      "stress"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.9173441215233407,
+    "termination_reason": "Terminal Adverse Outcome (Hepatocyte necrosis) reached and supported by evidence.",
+    "timestamp": 1787763647.3350701
+  },
+  {
+    "chemical": "paracetamol",
+    "signature": "covalent binding to hepatic proteins > glutathione depletion > mitochondrial dysfunction > hepatocellular necrosis",
+    "tokens": [
+      "binding",
+      "covalent",
+      "depletion",
+      "dysfunction",
+      "glutathione",
+      "hepatic",
+      "hepatocellular",
+      "mitochondrial",
+      "necrosis",
+      "proteins"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.9065148674662576,
+    "termination_reason": "The pathway has reached the terminal adverse outcome (Hepatocellular necrosis) supported by expert reasoning and the target profile liability of hepatotoxicity.",
+    "timestamp": 1787764996.4027634
+  },
+  {
+    "chemical": "toluene",
+    "signature": "membrane disruption > increased permeability of the blood brain barrier > neuronal dysfunction > neurotoxicity",
+    "tokens": [
+      "barrier",
+      "blood",
+      "brain",
+      "disruption",
+      "dysfunction",
+      "increased",
+      "membrane",
+      "neuronal",
+      "neurotoxicity",
+      "permeability"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.7399258143430778,
+    "termination_reason": "The pathway has progressed from the MIE through key events (BBB permeability and neuronal dysfunction) to the terminal adverse outcome (Neurotoxicity) supported by the target profile liabilities.",
+    "timestamp": 1787765616.6342292
+  },
+  {
+    "chemical": "aspirin",
+    "signature": "cox 1 inhibition > decreased prostaglandin synthesis > decreased gastric mucosal prostaglandins > gastric ulceration",
+    "tokens": [
+      "1",
+      "cox",
+      "decreased",
+      "gastric",
+      "inhibition",
+      "mucosal",
+      "prostaglandin",
+      "prostaglandins",
+      "synthesis",
+      "ulceration"
+    ],
+    "length": 4,
+    "final_ao": true,
+    "confidence_score": 0.8302726343171469,
+    "termination_reason": "The pathway has reached the terminal Adverse Outcome (Gastric Ulceration) supported by the target profile liability (gastrointestinal_toxicity) and expert candidate reasoning.",
+    "timestamp": 1787767453.6706254
+  }
+]

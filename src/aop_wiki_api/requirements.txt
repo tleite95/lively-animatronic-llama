@@ -1,0 +1,15 @@
+# Requirements for AOP Wiki API Module
+# 
+# Core dependencies
+requests>=2.25.0
+
+# Development dependencies
+types-requests>=2.25.0
+pytest>=6.0.0
+mypy>=0.900
+black>=21.0
+isort>=5.0
+
+# Documentation
+mkdocs>=1.0.0
+mkdocs-material>=7.0.0

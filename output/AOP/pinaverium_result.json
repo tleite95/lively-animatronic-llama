@@ -1,0 +1,21 @@
+{
+  "identifiers": {
+    "IdentifierList": {
+      "CID": [
+        40704
+      ]
+    }
+  },
+  "properties": {
+    "PropertyTable": {
+      "Properties": [
+        {
+          "CID": 40704,
+          "SMILES": "CC1(C2CCC(C1C2)CCOCC[N+]3(CCOCC3)CC4=CC(=C(C=C4Br)OC)OC)C",
+          "ConnectivitySMILES": "CC1(C2CCC(C1C2)CCOCC[N+]3(CCOCC3)CC4=CC(=C(C=C4Br)OC)OC)C",
+          "InChIKey": "DDHUTBKXLWCZCO-UHFFFAOYSA-N"
+        }
+      ]
+    }
+  }
+}

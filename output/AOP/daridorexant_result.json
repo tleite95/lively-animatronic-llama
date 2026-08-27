@@ -1,0 +1,21 @@
+{
+  "identifiers": {
+    "IdentifierList": {
+      "CID": [
+        91801202
+      ]
+    }
+  },
+  "properties": {
+    "PropertyTable": {
+      "Properties": [
+        {
+          "CID": 91801202,
+          "SMILES": "CC1=C(C=CC2=C1N=C(N2)[C@@]3(CCCN3C(=O)C4=C(C=CC(=C4)OC)N5N=CC=N5)C)Cl",
+          "ConnectivitySMILES": "CC1=C(C=CC2=C1N=C(N2)C3(CCCN3C(=O)C4=C(C=CC(=C4)OC)N5N=CC=N5)C)Cl",
+          "InChIKey": "NBGABHGMJVIVBW-QHCPKHFHSA-N"
+        }
+      ]
+    }
+  }
+}
