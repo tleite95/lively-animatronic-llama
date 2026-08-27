@@ -182,7 +182,7 @@ def batch_chunks_by_document__wiki(state: RAGIngestionState):
         "manifest": {**state["manifest"]},
     }
 
-    doc_name = state_updates["lightrag_doc_queue"].pop(0)
+    doc_name = state_updates["wiki_doc_queue"].pop(0)
 
     chunks = []
     with open(state["manifest"]["final_jsonl"], "r") as ingestion_stream:
@@ -191,13 +191,15 @@ def batch_chunks_by_document__wiki(state: RAGIngestionState):
             if record["source_document_name"] == doc_name:
                 chunks.append(line)
 
-    state_updates["current_wiki_doc"] = chunks
+    doc_chunk_file = Path(state["manifest"]["run_dir"]) / doc_name / ".jsonl"
+    doc_chunk_file.write_text("\n".join(chunks), encoding="utf-8")
+    state_updates["current_wiki_doc"] = doc_chunk_file
     return state_updates
 
 def wiki_ingest(state: RAGIngestionState):
     doc_stream = "\n".join(state["current_wiki_doc"])
 
-    prompt = f"Prepare the following JSONL stream for ingestion into the wiki: \n\n{doc_stream}"
+    prompt = f"Prepare the following JSONL stream for ingestion into the wiki: {doc_stream}"
     response = run_prompt(prompt, agent="wiki-expert", skill="wiki-ingest", run_id=state["run_id"])
 
     ingestion_report = Path(state["manifest"]["report_folder"]) / "wiki_ingest_report.md"
