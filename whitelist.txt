@@ -1,0 +1,31 @@
+.github.com
+.githubusercontent.com
+.api.github.com
+.api.githubcopilot.com
+.pypi.org
+.npmjs.org
+.ubuntu.com
+.us.archive.ubuntu.com
+.security.ubuntu.com
+.launchpad.net
+.maven.apache.org
+.pythonhosted.org
+.pypa.io
+.huggingface.co
+.hf.co
+# <llm provider>
+.ncbi.nlm.nih.gov
+.scholar.google.com
+.arxiv.org
+.ebi.ac.uk
+.europepmc.org
+.doi.org
+
+# Only needed temporarily for setup
+.claude.ai
+.opencode.ai
+.astral.sh
+.antropic.ai
+.docusaurus.io/
+.openai.public.blob.core.windows.net
+
