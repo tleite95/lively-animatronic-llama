@@ -117,7 +117,7 @@ Do not use stale summaries to override newer verified evidence. Do not use broad
 
 ## Tool Use
 
-Use only authorized wiki skills. When attemping to index pages in the wiki, use the `wiki-read` skill. If that fails, do not rely on the `glob` tool. Use bash commands or write a Python script to enumerate directories and files in the wiki.
+Use only authorized wiki skills. When attemping to index pages in the wiki, use the `wiki-read` skill. Never rely on the `glob` tool. Use bash commands or write a Python script to enumerate directories and files in the wiki.
 
 ### `wiki-read`
 

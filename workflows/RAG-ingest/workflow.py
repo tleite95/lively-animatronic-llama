@@ -10,8 +10,20 @@ import nodes
 import routers
 
 # PyTorch warning generated because Docling uses "torch_dtype" instead of "dtype"
-warnings.filterwarnings("ignore", message=".*W0807.*")
+warnings.filterwarnings("ignore", message=".*W0808.*")
 
+# Verification needs to be 1. implemented but also 2. the scope needs to be expanded and 3. the checks need to be made more robust
+# There should be verification of correct and complete output at every (non-verifier) node
+# If verification fails, it should go to the reset node and then retry
+# There should be some logic so that the workflow can retry in a smart way
+# - Maybe agentic? Show error from console and ask it to come up with a new prompt to fix the issue
+# The main issues that come up are infinite looping and context overflow
+# - Infinite looping is a softlock and there should be a way to detect it, like periodic audits checking for cycles and then an orchestrator which can interrupt and inject new commands
+# - Context overflow crashes a node and then the future nodes don't have the inputs / state they expect.
+# -- Those should be hardcoded checks to trigger a jump to the retry node but also there should be some way to recover when context is too big.
+# -- Opencode has automatic compaction, so the issue is when a given prompt is too large. This is somewhat mitigated by manually changing nodes to pass files around
+# -- Could it be a good idea to catch the overflow error and just write the problematic prompt to a file, then pass a message like "Read this file and respond to it: `$FILE`"
+# Progressive upgrading might also help: if there is a failure state, try a bigger model (specifically one with more context), or maybe a subagent.
 def build_graph():
     builder = StateGraph(RAGIngestionState)
     builder.add_node("init", nodes.init)
