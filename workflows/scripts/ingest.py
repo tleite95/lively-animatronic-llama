@@ -31,6 +31,7 @@ import hashlib
 import html
 import unicodedata
 import warnings
+import logging
 
 from docling.chunking import HybridChunker
 from docling.datamodel.base_models import InputFormat
@@ -956,6 +957,8 @@ def run_pipeline(args: argparse.Namespace):
     pdf_paths = iter_pdf_paths(pdf_folder, args.pdf_glob)
     if args.limit:
         pdf_paths = pdf_paths[: args.limit]
+
+    logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
 
     with open(args.output_jsonl, "w", encoding="utf-8") as kept_out, open(args.quarantined_jsonl, "w", encoding="utf-8") as quarantine_out:
         for pdf_path in pdf_paths:
