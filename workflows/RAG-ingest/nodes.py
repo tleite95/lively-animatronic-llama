@@ -225,7 +225,8 @@ def wiki_verify(state: RAGIngestionState):
     prompt = (
         "A series of changes has just been made to the wiki. "
         "Verify all newly inserted information, newly created page, and new claims. "
-        "Make sure you check for contradictions across the affected pages as well as the wiki as a whole. "
+        "Make sure you check for contradictions across the affected pages as well as the wiki as a whole.\n "
+        f"The current run's artifacts are located at: {state['manifest']['run_dir']}\n"
         f"Find the insertion report at: {report}"
     )
     response = run_prompt(prompt, agent="wiki-expert", skill="wiki-verify", run_id=state["run_id"])

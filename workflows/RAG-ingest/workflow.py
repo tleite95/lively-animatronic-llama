@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+# PyTorch warning generated because Docling uses "torch_dtype" instead of "dtype"
 import warnings
+warnings.filterwarnings("ignore", message=".*torch_dtype.*")
+import torch
+import logging
+torch._logging.set_logs(dynamo=logging.ERROR)
 
 from state import RAGIngestionState, make_initial_state
 
@@ -9,8 +14,6 @@ from langgraph.graph import StateGraph, START, END
 import nodes
 import routers
 
-# PyTorch warning generated because Docling uses "torch_dtype" instead of "dtype"
-warnings.filterwarnings("ignore", message=".*W0808.*")
 
 # Verification needs to be 1. implemented but also 2. the scope needs to be expanded and 3. the checks need to be made more robust
 # There should be verification of correct and complete output at every (non-verifier) node

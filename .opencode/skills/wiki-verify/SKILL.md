@@ -86,6 +86,22 @@ Each claim must be associated with:
 
 If no knowledge graph is available, skip the graph-comparison phase and proceed with within-page and cross-page contradiction checks using canonical wiki pages and cited sources. The absence of a graph should not block verification.
 
+## Checking Sources
+
+When checking sources, prioritize local copies. Only check remote document repositories after you have confirmed the working directory's tree does not contain the file you are looking for. The relevant artifacts directory may be passed, but if not, search for the relevant files in `./artifacts/rag-ingest/runs/` The priority order for sources is:
+
+1. Local `.md` copies located at: `<run artifacts directory>/md/`
+2. Local `.txt` copies located at: `<run artifacts directory>/txt/`
+3. The JSONL stream, located at: `<run artifacts directory>/<document name>.jsonl`
+4. PubMed, using the `literature-search-europepmc` skill
+5. Other whitelisted document repositories (if web search is permitted):
+    - ncbi.nlm.nih.gov
+    - scholar.google.com
+    - arxiv.org
+    - ebi.ac.uk
+    - europepmc.org
+    - doi.org
+
 ## Allowed Source Policy
 
 The default verification policy should be **open-access only** unless a human explicitly opts into licensed institutional access. Allowed sources should include:
