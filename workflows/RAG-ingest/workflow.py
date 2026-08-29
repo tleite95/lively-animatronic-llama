@@ -14,7 +14,6 @@ from langgraph.graph import StateGraph, START, END
 import nodes
 import routers
 
-
 # Verification needs to be 1. implemented but also 2. the scope needs to be expanded and 3. the checks need to be made more robust
 # There should be verification of correct and complete output at every (non-verifier) node
 # If verification fails, it should go to the reset node and then retry
