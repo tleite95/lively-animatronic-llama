@@ -1,0 +1,5 @@
+artifacts: ".../artifacts/workflows/rag-ingest"
+pdfs: ".../initial-wiki-ingest"
+llm_binding: "ollama"
+llm_host: "http://127.0.0.1:11434"
+llm_model: "olmo-3.1:32b-think"
