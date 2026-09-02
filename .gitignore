@@ -20,3 +20,5 @@ wiki/docs.bak
 /private
 *.pdf
 .DS_Store
+
+workflows/rag-ingest/config.yaml

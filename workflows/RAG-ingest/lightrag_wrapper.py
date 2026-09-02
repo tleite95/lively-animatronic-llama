@@ -1,7 +1,4 @@
 import os
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import uvicorn
 import yaml
 
 config_yaml = {
@@ -19,6 +16,7 @@ except:
     pass
 
 # Storage host, not lightrag server host
+# TODO: Move this to config.yaml too
 HOST = "192.168.64.1"
 
 MONGO_URI = f"mongodb://{HOST}:27017/"
@@ -37,9 +35,15 @@ OLLAMA_EMBED_DIM = 768
 WORKING_DIR = "./rag_storage"
 
 
-os.environ.setdefault("LLM_BINDING", "ollama")
-os.environ.setdefault("LLM_BINDING_HOST", "http://ollama-host:11434")
-os.environ.setdefault("LLM_MODEL", "your-llm-model")
+os.environ.setdefault("LLM_BINDING", config_yaml["llm_binding"])
+os.environ.setdefault("LLM_BINDING_HOST", config_yaml["llm_host"])
+os.environ.setdefault("LLM_MODEL", config_yaml["llm_model"])
+
+try:
+    api_key = config_yaml["llm_api_key"]
+    os.environ.setdefault("LLM_BINDING_API_KEY", api_key)
+except KeyError:
+    pass
 
 os.environ.setdefault("EMBEDDING_BINDING", "ollama")
 os.environ.setdefault("EMBEDDING_BINDING_HOST", OLLAMA_HOST)
@@ -75,7 +79,7 @@ async def llm_model_func(
     system_prompt=None,
     history_messages=None,
     keyword_extraction=False,
-    **kwargs,
+**kwargs,
 ) -> str:
     run_prompt(prompt, "Plan")
 
@@ -90,7 +94,7 @@ async def embedding_func(texts: list[str]):
 
 async def build_rag() -> LightRAG:
     if not os.path.exists(WORKING_DIR):
-    os.makedirs(WORKING_DIR)
+        os.makedirs(WORKING_DIR)
 
     rag = LightRAG(
         working_dir=WORKING_DIR,
@@ -123,41 +127,6 @@ async def cleanup_lightrag():
 
 # Server
 
-app = FastAPI(title="Lively Animatronic LightRAG")
-
-
-class QueryRequest(BaseModel):
-    query: str
-    mode: str = "hybrid"
-
-
-class InsertRequest(BaseModel):
-    text: str
-
-
-@app.post("/query")
-async def query_rag(request: QueryRequest):
-    try:
-        param = QueryParam(mode=request.mode)
-        response = await _rag.query(request.query, param=param)
-        return {"response": response}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/insert")
-async def insert_text(request: InsertRequest):
-    try:
-        await _rag.ainsert(request.text)
-        return {"status": "success", "message": "Text successfully indexed."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy", "working_dir": _rag.working_dir}
-
-
-def run_server():
-    uvicorn.run("app:app", host="127.0.0.1", port=9621, reload=False)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("lightrag.api.lightrag_server:app", host="127.0.0.1", port=9621, reload=False)
